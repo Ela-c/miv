@@ -1,241 +1,268 @@
-# 🏛️ MIV Platform - Mekong Inclusive Ventures
+# MIV Platform - Venture Pipeline Management System
 
-> **Empowering inclusive ventures across Southeast Asia through innovative pipeline management and GEDSI integration**
+A comprehensive, AI-powered venture pipeline management platform for Mekong Inclusive Ventures (MIV), designed to track venture progress, GEDSI metrics, and support activities across Southeast Asia.
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.2.4-black)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-blue)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1.11-38B2AC)](https://tailwindcss.com/)
+## 🚀 **Features**
 
-## 🌟 Overview
+### **Core Features**
+- **Venture Intake & Management**: Multi-step venture application process with AI-powered analysis
+- **GEDSI Tracker**: IRIS+ metrics tracking with automated suggestions and verification
+- **Readiness Dashboard**: Progress tracking for operational and capital readiness
+- **Analytics & Reporting**: Real-time analytics with AI-powered insights
+- **Document Management**: Secure file storage and AI-powered document analysis
+- **Activity Tracking**: Comprehensive audit trail and activity logging
 
-The MIV Platform is a comprehensive venture pipeline management system designed specifically for inclusive development organizations. It provides powerful tools for venture intake, assessment, capital facilitation, and impact tracking with integrated GEDSI (Gender Equality, Disability, and Social Inclusion) monitoring.
+### **AI-Powered Features**
+- **Intelligent Venture Screening**: AI analysis of pitch decks and business plans
+- **GEDSI Metrics Suggestions**: Automated IRIS+ metric recommendations
+- **Readiness Assessment**: AI-powered venture readiness evaluation
+- **Risk Assessment**: Automated risk analysis and mitigation recommendations
+- **Document Analysis**: AI-powered document processing and insights
+- **Smart Tagging**: Automated venture and document categorization
 
-## ✨ Key Features
+### **Advanced Features**
+- **Capital Facilitation**: Investment tracking and management
+- **Impact Reports**: Automated impact measurement and reporting
+- **Team Management**: User roles and permissions
+- **Google Workspace Integration**: Seamless integration with Google Drive and Docs
+- **Real-time Notifications**: Smart alerts and deadline tracking
 
-### 🚀 **Core Functionality**
+## 🛠️ **Technology Stack**
 
-- **Venture Pipeline Management** - Complete lifecycle tracking from intake to exit
-- **GEDSI Integration** - Built-in gender equality and social inclusion monitoring
-- **Capital Facilitation** - Investment tracking and portfolio management
-- **Impact Analytics** - Comprehensive reporting and performance metrics
-- **Diagnostics Hub** - Venture assessment and scoring frameworks
+### **Frontend**
+- **Next.js 15**: React framework with App Router
+- **React 19**: Latest React with concurrent features
+- **TypeScript**: Type-safe development
+- **Tailwind CSS 4**: Utility-first CSS framework
+- **Radix UI**: Accessible component primitives
+- **Recharts**: Data visualization library
 
-### 🎨 **User Experience**
+### **Backend**
+- **Next.js API Routes**: Serverless API endpoints
+- **Prisma 5**: Type-safe database ORM
+- **PostgreSQL**: Primary database
+- **NextAuth.js**: Authentication and authorization
 
-- **Dark/Light Themes** - Professional appearance with system preference support
-- **Responsive Design** - Optimized for desktop, tablet, and mobile devices
-- **Seamless Navigation** - Client-side routing with instant page transitions
-- **Accessibility** - Full keyboard navigation and screen reader support
-- **Real-time Feedback** - Toast notifications and loading states
+### **AI & ML**
+- **OpenAI GPT-4**: Document analysis and content generation
+- **Anthropic Claude**: Advanced reasoning and analysis
+- **Google AI (Gemini)**: Multi-modal AI capabilities
 
-### 📊 **Enterprise Features**
+### **Infrastructure**
+- **Vercel**: Deployment and hosting
+- **PostgreSQL**: Database (Supabase/Neon/Railway)
+- **Google Cloud**: AI services and storage
 
-- **Advanced Data Tables** - Sorting, filtering, and export capabilities
-- **Interactive Dashboards** - Real-time metrics and visualizations
-- **Export Functionality** - CSV, Excel, and PDF export options
-- **Form Validation** - Real-time validation with user-friendly error messages
-- **Help & Support** - Comprehensive support center with multiple contact options
+## 📊 **Database Schema**
 
-## 🚀 Quick Start
+The platform uses a comprehensive database schema with the following main entities:
 
-### Prerequisites
+- **Users**: Authentication and user management
+- **Ventures**: Venture information and pipeline stages
+- **GEDSIMetrics**: IRIS+ metrics tracking
+- **Documents**: File management and storage
+- **Activities**: Audit trail and activity logging
+- **CapitalActivities**: Investment and funding tracking
 
-- Node.js 18.0+
-- npm 9.0+
-- Git
+## 🚀 **Quick Start**
 
-### Installation
+### **1. Prerequisites**
+- Node.js 18+ 
+- PostgreSQL database
+- AI service API keys (OpenAI, Anthropic, Google AI)
+
+### **2. Installation**
 
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd miv/my-app
+cd miv-platform
 
 # Install dependencies
 npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your configuration
+
+# Generate Prisma client
+npm run db:generate
+
+# Run database migrations
+npm run db:migrate
+
+# Seed database with sample data
+npm run db:seed
 
 # Start development server
 npm run dev
 ```
 
-Visit `http://localhost:3000` to see the application.
+### **3. Environment Configuration**
 
-📖 **For detailed setup instructions, see [INSTALLATION.md](./INSTALLATION.md)**
-
-## 🏗️ Architecture
-
-### Technology Stack
-
-- **Frontend**: Next.js 15 with React 19
-- **Styling**: Tailwind CSS 4 with custom design system
-- **Language**: TypeScript for type safety
-- **UI Components**: Radix UI primitives with custom styling
-- **Icons**: Lucide React icon library
-- **Charts**: Recharts for data visualization
-
-### Project Structure
-
-```
-my-app/
-├── app/                    # Next.js App Router pages
-│   ├── dashboard/         # Main dashboard
-│   ├── venture-intake/    # Venture application management
-│   ├── diagnostics/       # Assessment tools
-│   ├── gedsi-tracker/     # GEDSI monitoring
-│   └── ...               # Other feature pages
-├── components/            # Reusable UI components
-│   ├── ui/               # Base UI components
-│   ├── enterprise/       # Business logic components
-│   └── ...              # Feature-specific components
-├── lib/                  # Utility functions
-└── public/              # Static assets
-```
-
-## 🎯 User Stories & Features
-
-The platform is built around comprehensive user stories covering:
-
-- **Platform Discovery & Access** - Professional homepage with clear value proposition
-- **Venture Management** - Complete intake and portfolio management
-- **Analytics & Reporting** - Performance tracking and export capabilities
-- **User Experience** - Theme customization and seamless navigation
-- **Support & Help** - Comprehensive assistance and documentation
-
-📋 **For complete user stories, see the testing documentation**
-
-## 🧭 Navigation System
-
-The platform features a sophisticated navigation system with:
-
-- **Client-side Routing** - No page refreshes, instant navigation
-- **Prefetching** - Background loading for optimal performance
-- **Loading States** - Visual feedback during transitions
-- **Keyboard Support** - Full accessibility compliance
-
-🗺️ **For navigation details, see [NAVIGATION.md](./NAVIGATION.md)**
-
-## 🎨 Design System
-
-### Color Palette
-
-- **Primary**: Blue tones for trust and professionalism
-- **Secondary**: Complementary colors for status and categories
-- **Neutral**: Slate grays for text and backgrounds
-- **Status**: Green (success), Red (error), Yellow (warning), Blue (info)
-
-### Typography
-
-- **Primary Font**: Geist Sans for modern readability
-- **Monospace**: Geist Mono for code and data
-- **Hierarchy**: Clear heading structure with proper contrast
-
-### Components
-
-- **Cards**: Elevated surfaces with subtle shadows
-- **Buttons**: Multiple variants with proper states
-- **Forms**: Comprehensive validation and feedback
-- **Tables**: Advanced sorting, filtering, and pagination
-
-## 📱 Responsive Design
-
-The platform is fully responsive across all device sizes:
-
-- **Desktop** (1024px+): Full feature set with sidebar navigation
-- **Tablet** (768px-1023px): Optimized layout with collapsible elements
-- **Mobile** (320px-767px): Touch-optimized interface with mobile navigation
-
-## ♿ Accessibility
-
-Comprehensive accessibility features include:
-
-- **Keyboard Navigation**: Full keyboard support with visible focus indicators
-- **Screen Readers**: Semantic HTML with proper ARIA labels
-- **Color Contrast**: WCAG 2.1 AA compliant color combinations
-- **Focus Management**: Logical tab order and focus trapping
-- **Alternative Text**: Descriptive text for all visual elements
-
-## 🔧 Development
-
-### Available Scripts
+Create a `.env.local` file with the following variables:
 
 ```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run start        # Start production server
-npm run lint         # Run ESLint
-npm run type-check   # Run TypeScript checks
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/miv_platform"
+
+# NextAuth.js
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-nextauth-secret-key-here"
+
+# Google OAuth
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+# AI Services
+OPENAI_API_KEY="your-openai-api-key"
+ANTHROPIC_API_KEY="your-anthropic-api-key"
+GOOGLE_AI_API_KEY="your-google-ai-api-key"
 ```
 
-### Code Quality
+## 📖 **Usage**
 
-- **TypeScript**: Strict type checking enabled
-- **ESLint**: Next.js recommended configuration
-- **Prettier**: Consistent code formatting
-- **Husky**: Pre-commit hooks for quality assurance
+### **Venture Intake**
+1. Navigate to `/dashboard/venture-intake`
+2. Fill out the multi-step application form
+3. AI automatically analyzes the submission
+4. GEDSI metrics are suggested based on venture data
+5. Venture is added to the pipeline
 
-## 🚀 Deployment
+### **GEDSI Tracking**
+1. Access `/dashboard/gedsi-tracker`
+2. View all ventures and their GEDSI metrics
+3. Add, edit, or verify metrics
+4. Track progress towards impact goals
+5. Generate compliance reports
 
-### Vercel (Recommended)
+### **Dashboard Analytics**
+1. Visit `/dashboard` for overview
+2. View real-time analytics and trends
+3. Monitor venture pipeline stages
+4. Track GEDSI compliance rates
+5. Analyze performance metrics
+
+## 🔧 **Development**
+
+### **Available Scripts**
 
 ```bash
+# Development
+npm run dev              # Start development server
+npm run build           # Build for production
+npm run start           # Start production server
+npm run lint            # Run ESLint
+
+# Database
+npm run db:generate     # Generate Prisma client
+npm run db:push         # Push schema to database
+npm run db:migrate      # Run database migrations
+npm run db:studio       # Open Prisma Studio
+npm run db:seed         # Seed database with sample data
+```
+
+### **AI Development Workflow**
+
+The platform includes AI-powered development features:
+
+```typescript
+// AI Service Integration
+import { AIServices } from '@/lib/ai-services'
+
+// Analyze venture data
+const analysis = await AIServices.analyzeGEDSIMetrics(ventureData)
+
+// Assess venture readiness
+const assessment = await AIServices.assessVentureReadiness(ventureData)
+
+// Generate tags
+const tags = await AIServices.generateTags(ventureData)
+
+// Risk assessment
+const riskAnalysis = await AIServices.assessRisk(ventureData)
+```
+
+## 📊 **API Endpoints**
+
+### **Ventures**
+- `GET /api/ventures` - List ventures with filtering
+- `POST /api/ventures` - Create new venture
+- `GET /api/ventures/[id]` - Get venture details
+- `PUT /api/ventures/[id]` - Update venture
+- `DELETE /api/ventures/[id]` - Delete venture
+
+### **GEDSI Metrics**
+- `GET /api/ventures/[id]/gedsi` - Get venture metrics
+- `POST /api/ventures/[id]/gedsi` - Add metric
+- `PUT /api/ventures/[id]/gedsi` - Update metric
+- `DELETE /api/ventures/[id]/gedsi` - Delete metric
+
+### **Analytics**
+- `GET /api/analytics` - Get comprehensive analytics data
+
+## 🔒 **Security**
+
+### **Authentication**
+- Google OAuth 2.0 integration
+- Role-based access control (RBAC)
+- Session management with NextAuth.js
+- Secure JWT tokens
+
+### **Data Protection**
+- Encrypted data transmission (HTTPS)
+- Secure API endpoints with authentication
+- Input validation and sanitization
+- Audit logging for all activities
+
+### **AI Security**
+- Secure API key management
+- Rate limiting for AI services
+- Bias detection and mitigation
+- Audit trails for AI decisions
+
+## 🚀 **Deployment**
+
+### **Vercel (Recommended)**
+
+```bash
+# Install Vercel CLI
 npm i -g vercel
+
+# Deploy
 vercel
+
+# Set environment variables in Vercel dashboard
+# Run database migrations
+npx prisma migrate deploy
 ```
 
-### Docker
+### **Docker**
 
 ```bash
+# Build image
 docker build -t miv-platform .
+
+# Run container
 docker run -p 3000:3000 miv-platform
 ```
 
-### Traditional Server
+## 📈 **Performance**
 
-```bash
-npm run build
-npm start
-```
+### **Optimizations**
+- Server-side rendering (SSR) with Next.js
+- Database query optimization with Prisma
+- AI response caching
+- Image optimization
+- Code splitting and lazy loading
 
-## 🧪 Testing
+### **Monitoring**
+- Vercel Analytics integration
+- Database performance monitoring
+- AI service usage tracking
+- Error tracking and logging
 
-The platform has been thoroughly tested against all user stories:
-
-- ✅ **Platform Discovery & Access** - Homepage and navigation
-- ✅ **User Experience** - Themes, responsiveness, accessibility
-- ✅ **Venture Management** - Forms, validation, data handling
-- ✅ **Analytics & Reporting** - Dashboards, exports, visualizations
-- ✅ **Support Features** - Help center, documentation, contact options
-
-## 📊 Performance
-
-### Metrics Achieved
-
-- **Page Load Time**: < 2 seconds
-- **Navigation Speed**: < 100ms (client-side routing)
-- **Lighthouse Score**: 95+ across all categories
-- **Bundle Size**: Optimized with automatic code splitting
-
-### Optimization Features
-
-- **Image Optimization**: Next.js automatic image optimization
-- **Code Splitting**: Automatic route-based splitting
-- **Prefetching**: Intelligent link prefetching
-- **Caching**: Optimized caching strategies
-
-## 🔐 Security
-
-### Security Features
-
-- **Type Safety**: TypeScript prevents runtime errors
-- **Input Validation**: Comprehensive form validation
-- **XSS Protection**: React's built-in XSS prevention
-- **CSRF Protection**: Next.js built-in CSRF protection
-- **Secure Headers**: Production security headers
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our contributing guidelines:
+## 🤝 **Contributing**
 
 1. Fork the repository
 2. Create a feature branch
@@ -243,47 +270,39 @@ We welcome contributions! Please see our contributing guidelines:
 4. Add tests if applicable
 5. Submit a pull request
 
-### Development Guidelines
-
+### **Development Guidelines**
 - Follow TypeScript best practices
+- Use AI-powered code generation
 - Maintain accessibility standards
-- Write comprehensive tests
-- Update documentation
-- Follow the existing code style
+- Write comprehensive documentation
+- Follow the established code style
 
-## 📞 Support
+## 📚 **Documentation**
 
-### Getting Help
+- [Setup Guide](./docs/SETUP_GUIDE.md) - Detailed setup instructions
+- [AI Implementation Guide](./docs/AI_ACCELERATED_IMPLEMENTATION.md) - AI-powered development
+- [Architecture Documentation](./docs/ARCHITECTURE.md) - System architecture
+- [Design Specification](./docs/DESIGN_SPECIFICATION.md) - Complete design overview
 
-- **Documentation**: Check INSTALLATION.md and NAVIGATION.md
-- **Issues**: Create GitHub issues for bugs and feature requests
-- **Community**: Join our developer community
-- **Direct Support**: Contact the development team
+## 🆘 **Support**
 
-### Reporting Issues
+For support and questions:
+- Create an issue in the repository
+- Check the documentation
+- Review the troubleshooting guide
 
-Include the following information:
+## 📄 **License**
 
-- Operating system and browser
-- Node.js and npm versions
-- Steps to reproduce
-- Expected vs actual behavior
-- Screenshots if applicable
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📄 License
+## 🙏 **Acknowledgments**
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- **Next.js Team** - For the excellent React framework
-- **Tailwind CSS** - For the utility-first CSS framework
-- **Radix UI** - For accessible component primitives
-- **Lucide** - For the beautiful icon library
-- **Vercel** - For hosting and deployment platform
+- **IRIS+**: For GEDSI metrics framework
+- **Next.js Team**: For the excellent React framework
+- **Prisma Team**: For the type-safe database ORM
+- **OpenAI, Anthropic, Google**: For AI capabilities
+- **Mekong Inclusive Ventures**: For the vision and requirements
 
 ---
 
-**Built with ❤️ for inclusive development organizations worldwide**
-
-_Empowering ventures that create positive social and economic impact across Southeast Asia and beyond._
+**Built with ❤️ for inclusive venture capital in Southeast Asia**

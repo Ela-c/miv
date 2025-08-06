@@ -453,3 +453,16 @@
   width: 300px;
   height: 300px;
 }
+
+/* Minimal Cross-Browser Fixes */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+

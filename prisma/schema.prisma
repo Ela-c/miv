@@ -1,0 +1,261 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  image         String?
+  role          UserRole @default(USER)
+  permissions   Json?    // JSONB for flexible permissions
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  createdVentures Venture[] @relation("CreatedBy")
+  assignedVentures Venture[] @relation("AssignedTo")
+  gedsiMetrics   GEDSIMetric[]
+  activities     Activity[]
+  sessions       Session[]
+  accounts       Account[]
+  
+  @@map("users")
+}
+
+model Venture {
+  id                  String   @id @default(cuid())
+  name                String
+  sector              String
+  location            String
+  contactEmail        String
+  contactPhone        String?
+  pitchSummary        String?
+  inclusionFocus      String?
+  founderTypes        String // JSON string of founder types
+  teamSize            String?
+  foundingYear        String?
+  targetMarket        String?
+  revenueModel        String?
+  operationalReadiness Json?   // JSONB for operational readiness checklist
+  capitalReadiness    Json?    // JSONB for capital readiness checklist
+  gedsiGoals          Json?    // JSONB for GEDSI goals
+  aiAnalysis          Json?    // JSONB for AI analysis results
+  challenges          String?
+  supportNeeded       String?
+  timeline            String?
+  status              VentureStatus @default(ACTIVE)
+  stage               VentureStage @default(INTAKE)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  // Relations
+  createdBy           User     @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById         String
+  assignedTo          User?    @relation("AssignedTo", fields: [assignedToId], references: [id])
+  assignedToId        String?
+  gedsiMetrics        GEDSIMetric[]
+  documents           Document[]
+  activities          Activity[]
+  capitalActivities   CapitalActivity[]
+  
+  @@map("ventures")
+}
+
+model GEDSIMetric {
+  id              String        @id @default(cuid())
+  ventureId       String
+  metricCode      String        // IRIS+ metric code
+  metricName      String
+  category        GEDSICategory
+  targetValue     Float
+  currentValue    Float
+  unit            String
+  status          MetricStatus  @default(NOT_STARTED)
+  verificationDate DateTime?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  venture         Venture       @relation(fields: [ventureId], references: [id], onDelete: Cascade)
+  createdBy       User          @relation(fields: [createdById], references: [id])
+  createdById     String
+  
+  @@map("gedsi_metrics")
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  ventureId   String
+  name        String
+  type        DocumentType
+  url         String
+  size        Int?
+  mimeType    String?
+  uploadedAt  DateTime @default(now())
+  
+  // Relations
+  venture     Venture  @relation(fields: [ventureId], references: [id], onDelete: Cascade)
+  
+  @@map("documents")
+}
+
+model Activity {
+  id          String        @id @default(cuid())
+  ventureId   String?
+  userId      String
+  type        ActivityType
+  title       String
+  description String?
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+  
+  // Relations
+  venture     Venture?      @relation(fields: [ventureId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
+  
+  @@map("activities")
+}
+
+model CapitalActivity {
+  id              String            @id @default(cuid())
+  ventureId       String
+  type            CapitalActivityType
+  amount          Float?
+  currency        String            @default("USD")
+  status          CapitalStatus     @default(PENDING)
+  description     String?
+  date            DateTime?
+  investorName    String?
+  terms           Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  venture         Venture           @relation(fields: [ventureId], references: [id], onDelete: Cascade)
+  
+  @@map("capital_activities")
+}
+
+// NextAuth.js Models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  MANAGER
+  ANALYST
+  USER
+}
+
+enum VentureStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum VentureStage {
+  INTAKE
+  SCREENING
+  DUE_DILIGENCE
+  INVESTMENT_READY
+  FUNDED
+  EXITED
+}
+
+enum GEDSICategory {
+  GENDER
+  DISABILITY
+  SOCIAL_INCLUSION
+  CROSS_CUTTING
+}
+
+enum MetricStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  VERIFIED
+  COMPLETED
+}
+
+enum DocumentType {
+  PITCH_DECK
+  FINANCIAL_STATEMENTS
+  BUSINESS_PLAN
+  LEGAL_DOCUMENTS
+  MARKET_RESEARCH
+  TEAM_PROFILE
+  OTHER
+}
+
+enum ActivityType {
+  VENTURE_CREATED
+  VENTURE_UPDATED
+  METRIC_ADDED
+  METRIC_UPDATED
+  DOCUMENT_UPLOADED
+  STAGE_CHANGED
+  CAPITAL_ACTIVITY
+  NOTE_ADDED
+}
+
+enum CapitalActivityType {
+  GRANT
+  DEBT
+  EQUITY
+  CONVERTIBLE_NOTE
+  OTHER
+}
+
+enum CapitalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}

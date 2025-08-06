@@ -47,7 +47,7 @@ interface ChartWidget {
   id: string
   title: string
   type: 'line' | 'bar' | 'pie' | 'area'
-  data: any[]
+  data: Record<string, unknown>[]
   height?: number
   span?: number
 }
@@ -80,7 +80,7 @@ export function AnalyticsDashboard({
   const getChangeIcon = (changeType: string) => {
     switch (changeType) {
       case 'increase':
-        return <TrendingUp className="h-4 w-4 text-green-500" />
+        return <TrendingUp className="h-4 w-4 text-emerald-500" />
       case 'decrease':
         return <TrendingDown className="h-4 w-4 text-red-500" />
       default:
@@ -91,9 +91,9 @@ export function AnalyticsDashboard({
   const getChangeColor = (changeType: string) => {
     switch (changeType) {
       case 'increase':
-        return 'text-green-600'
+        return 'text-emerald-600 font-semibold'
       case 'decrease':
-        return 'text-red-600'
+        return 'text-red-600 font-semibold'
       default:
         return 'text-gray-600'
     }
@@ -104,8 +104,8 @@ export function AnalyticsDashboard({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">{title}</h1>
-          <p className="text-slate-600">Real-time insights and performance metrics</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">{title}</h1>
+          <p className="text-slate-600 font-medium">Real-time insights and performance metrics</p>
         </div>
         
         <div className="flex items-center space-x-3">
@@ -154,15 +154,15 @@ export function AnalyticsDashboard({
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {metrics.map((metric, index) => (
-          <Card key={index} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <Card key={index} className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-white to-gray-50/50">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-600 mb-1">{metric.title}</p>
                   <div className="flex items-baseline space-x-2">
-                    <p className="text-3xl font-bold text-gray-900">{metric.value}</p>
+                    <p className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{metric.value}</p>
                     {metric.change !== 0 && (
-                      <div className={`flex items-center space-x-1 ${getChangeColor(metric.changeType)}`}>
+                      <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${getChangeColor(metric.changeType)} ${metric.changeType === 'increase' ? 'bg-emerald-50' : 'bg-red-50'}`}>
                         {getChangeIcon(metric.changeType)}
                         <span className="text-sm font-medium">
                           {Math.abs(metric.change)}%
@@ -174,7 +174,7 @@ export function AnalyticsDashboard({
                     <p className="text-xs text-gray-500 mt-1">{metric.subtitle}</p>
                   )}
                 </div>
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${metric.color}`}>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${metric.color} transform transition-all duration-300 hover:scale-110 hover:shadow-xl`}>
                   {metric.icon}
                 </div>
               </div>

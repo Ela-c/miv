@@ -13,6 +13,7 @@ import {
   Home,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Logo } from "@/components/logo"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useTransition } from "react"
@@ -24,51 +25,44 @@ export function Sidebar() {
 
   const navigation = [
     { name: "Pipeline Overview", icon: Home, href: "/dashboard", current: pathname === "/dashboard", section: "MAIN" },
-    { name: "Venture Intake", icon: Building2, href: "/venture-intake", current: pathname === "/venture-intake", section: "MAIN" },
-    { name: "Diagnostics Hub", icon: Target, href: "/diagnostics", current: pathname === "/diagnostics", section: "MAIN" },
-    { name: "Capital Facilitation", icon: DollarSign, href: "/capital-facilitation", current: pathname === "/capital-facilitation", section: "MAIN" },
-    { name: "GEDSI Integration", icon: BarChart3, href: "/gedsi-tracker", current: pathname === "/gedsi-tracker", section: "MAIN" },
-    { name: "Impact Reports", icon: TrendingUp, href: "/impact-reports", current: pathname === "/impact-reports", section: "REPORTS" },
+    { name: "Venture Intake", icon: Building2, href: "/dashboard/venture-intake", current: pathname === "/dashboard/venture-intake", section: "MAIN" },
+    { name: "Diagnostics Hub", icon: Target, href: "/dashboard/diagnostics", current: pathname === "/dashboard/diagnostics", section: "MAIN" },
+    { name: "Capital Facilitation", icon: DollarSign, href: "/dashboard/capital-facilitation", current: pathname === "/dashboard/capital-facilitation", section: "MAIN" },
+    { name: "GEDSI Integration", icon: BarChart3, href: "/dashboard/gedsi-tracker", current: pathname === "/dashboard/gedsi-tracker", section: "MAIN" },
+    { name: "Impact Reports", icon: TrendingUp, href: "/dashboard/impact-reports", current: pathname === "/dashboard/impact-reports", section: "REPORTS" },
     {
       name: "Performance Analytics",
       icon: PieChart,
-      href: "/performance-analytics",
-      current: pathname === "/performance-analytics",
+      href: "/dashboard/performance-analytics",
+      current: pathname === "/dashboard/performance-analytics",
       section: "REPORTS",
     },
-    { name: "Team Management", icon: Users, href: "/team-management", current: pathname === "/team-management", section: "SETTINGS" },
+    { name: "Team Management", icon: Users, href: "/dashboard/team-management", current: pathname === "/dashboard/team-management", section: "SETTINGS" },
     {
       name: "System Settings",
       icon: Settings,
-      href: "/system-settings",
-      current: pathname === "/system-settings",
+      href: "/dashboard/system-settings",
+      current: pathname === "/dashboard/system-settings",
       section: "SETTINGS",
     },
-    { name: "Help & Support", icon: HelpCircle, href: "/help-support", current: pathname === "/help-support", section: "SETTINGS" },
+    { name: "Help & Support", icon: HelpCircle, href: "/dashboard/help-support", current: pathname === "/dashboard/help-support", section: "SETTINGS" },
   ]
 
   return (
-    <div className="w-64 bg-slate-900 text-slate-100 shadow-xl border-r border-slate-800 flex flex-col h-full">
+    <aside className="fixed left-0 top-0 w-64 h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900/95 backdrop-blur-md text-slate-100 shadow-2xl border-r border-slate-800 flex flex-col z-50 transition-all duration-300 hidden lg:flex">
       {/* Loading indicator */}
       {isPending && (
         <div className="h-1 bg-gradient-to-r from-blue-600 to-blue-400 animate-pulse" />
       )}
 
-      <div className="p-6 border-b border-slate-800">
-        <Link
-          href="/"
-          prefetch={true}
-          className="flex items-center space-x-3 group focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 rounded-lg p-1 -m-1"
-        >
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center group-hover:bg-blue-500 transition-colors">
-            <span className="text-xl">🏛️</span>
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white">MIV</h1>
-            <p className="text-slate-400 text-sm">Enterprise Platform</p>
-          </div>
-        </Link>
-      </div>
+      {/* Branding */}
+      <Link href="/" className="p-6 border-b border-slate-800 flex items-center gap-3 hover:bg-slate-800/50 transition-colors duration-200">
+        <Logo size="sm" />
+        <div>
+          <h1 className="text-xl font-bold text-white tracking-wide">MIV</h1>
+          <p className="text-slate-400 text-xs font-medium">Enterprise Platform</p>
+        </div>
+      </Link>
 
       <nav className="flex-1 px-3 py-6 space-y-6 overflow-y-auto">
         {sections.map((section) => (
@@ -85,9 +79,10 @@ export function Sidebar() {
                     className={cn(
                       "group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900",
                       pathname === item.href
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25 border-l-4 border-blue-300"
-                        : "text-slate-300 hover:bg-slate-800 hover:text-white hover:border-l-4 hover:border-slate-600",
+                        ? "bg-blue-600/90 text-white shadow-lg border-l-4 border-blue-400"
+                        : "text-slate-300 hover:bg-slate-800/80 hover:text-white hover:border-l-4 hover:border-slate-600",
                     )}
+                    style={{ boxShadow: pathname === item.href ? '0 4px 24px 0 rgba(37, 99, 235, 0.15)' : undefined }}
                   >
                     <item.icon className={cn(
                       "mr-3 h-5 w-5 transition-colors",
@@ -100,6 +95,6 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-    </div>
+    </aside>
   )
 }

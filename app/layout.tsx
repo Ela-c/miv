@@ -19,6 +19,13 @@ export const metadata: Metadata = {
   description: "Empowering inclusive ventures across Southeast Asia through innovative pipeline management and GEDSI integration",
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

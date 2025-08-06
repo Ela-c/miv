@@ -27,7 +27,7 @@ import {
   DollarSign,
   Target,
   Settings,
-  MarkAsUnread,
+  Eye,
   Archive,
   Trash2
 } from "lucide-react"

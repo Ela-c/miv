@@ -48,11 +48,11 @@ interface Column {
   sortable?: boolean
   filterable?: boolean
   width?: string
-  render?: (value: any, row: any) => React.ReactNode
+  render?: (value: unknown, row: Record<string, unknown>) => React.ReactNode
 }
 
 interface AdvancedDataTableProps {
-  data: any[]
+  data: Record<string, unknown>[]
   columns: Column[]
   title?: string
   searchable?: boolean
@@ -63,10 +63,10 @@ interface AdvancedDataTableProps {
   pagination?: boolean
   pageSize?: number
   loading?: boolean
-  onRowClick?: (row: any) => void
-  onEdit?: (row: any) => void
-  onDelete?: (row: any) => void
-  onBulkAction?: (action: string, selectedRows: any[]) => void
+  onRowClick?: (row: Record<string, unknown>) => void
+  onEdit?: (row: Record<string, unknown>) => void
+  onDelete?: (row: Record<string, unknown>) => void
+  onBulkAction?: (action: string, selectedRows: Record<string, unknown>[]) => void
 }
 
 export function AdvancedDataTable({
@@ -125,10 +125,14 @@ export function AdvancedDataTable({
       const aValue = a[sortConfig.key]
       const bValue = b[sortConfig.key]
 
-      if (aValue < bValue) {
+      // Convert to comparable values
+      const aStr = String(aValue)
+      const bStr = String(bValue)
+
+      if (aStr < bStr) {
         return sortConfig.direction === 'asc' ? -1 : 1
       }
-      if (aValue > bValue) {
+      if (aStr > bStr) {
         return sortConfig.direction === 'asc' ? 1 : -1
       }
       return 0
@@ -345,7 +349,7 @@ export function AdvancedDataTable({
                   )}
                   {columns.map(column => (
                     <TableCell key={column.key}>
-                      {column.render ? column.render(row[column.key], row) : row[column.key]}
+                      {column.render ? column.render(row[column.key], row) : String(row[column.key])}
                     </TableCell>
                   ))}
                   {actions && (

@@ -41,7 +41,7 @@ interface FilterField {
 interface FilterValue {
   field: string
   operator: string
-  value: any
+  value: unknown
 }
 
 interface AdvancedFiltersProps {
@@ -150,7 +150,7 @@ export function AdvancedFilters({
       case 'select':
         return (
           <Select
-            value={filter.value}
+            value={String(filter.value)}
             onValueChange={(value) => updateFilter(index, { value })}
           >
             <SelectTrigger className="w-48">
@@ -172,7 +172,7 @@ export function AdvancedFilters({
             <PopoverTrigger asChild>
               <Button variant="outline" className="w-48 justify-start text-left font-normal">
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {filter.value ? format(new Date(filter.value), "PPP") : "Pick a date"}
+                {filter.value ? format(new Date(String(filter.value)), "PPP") : "Pick a date"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -180,7 +180,7 @@ export function AdvancedFilters({
               <div className="p-4">
                 <Input
                   type="date"
-                  value={filter.value}
+                  value={String(filter.value)}
                   onChange={(e) => updateFilter(index, { value: e.target.value })}
                 />
               </div>
@@ -193,7 +193,7 @@ export function AdvancedFilters({
           <Input
             type="number"
             placeholder="Enter number"
-            value={filter.value}
+            value={String(filter.value)}
             onChange={(e) => updateFilter(index, { value: e.target.value })}
             className="w-48"
           />
@@ -203,7 +203,7 @@ export function AdvancedFilters({
         return (
           <Input
             placeholder={field.placeholder || "Enter value"}
-            value={filter.value}
+            value={String(filter.value)}
             onChange={(e) => updateFilter(index, { value: e.target.value })}
             className="w-48"
           />
@@ -392,7 +392,7 @@ export function AdvancedFilters({
             const field = fields.find(f => f.key === filter.field)
             return (
               <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                {field?.label}: {filter.value}
+                {field?.label}: {String(filter.value)}
                 <Button
                   variant="ghost"
                   size="sm"

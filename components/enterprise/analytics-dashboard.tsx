@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -32,6 +32,23 @@ import {
   Clock,
   Zap
 } from "lucide-react"
+import {
+  ResponsiveContainer,
+  BarChart as RBarChart,
+  Bar,
+  LineChart as RLineChart,
+  Line,
+  AreaChart as RAreaChart,
+  Area,
+  PieChart as RPieChart,
+  Pie,
+  Cell,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from 'recharts'
 
 interface MetricCard {
   title: string
@@ -96,6 +113,93 @@ export function AnalyticsDashboard({
         return 'text-red-600 font-semibold'
       default:
         return 'text-gray-600'
+    }
+  }
+
+  const ChartRenderer = ({ chart }: { chart: ChartWidget }) => {
+    const { xKey, yKey, nameKey, valueKey } = useMemo(() => {
+      const first = chart.data && chart.data.length > 0 ? chart.data[0] : undefined
+      const keys = first ? Object.keys(first) : []
+      const numericKeys = keys.filter(k => typeof (first as any)[k] === 'number')
+      const stringKeys = keys.filter(k => typeof (first as any)[k] === 'string')
+      return {
+        xKey: stringKeys[0] || 'name',
+        yKey: numericKeys[0] || 'value',
+        nameKey: stringKeys[0] || 'name',
+        valueKey: numericKeys[0] || 'value',
+      }
+    }, [chart.data])
+
+    const palette = ['#6366F1','#22C55E','#F59E0B','#EC4899','#06B6D4','#84CC16']
+
+    const heightPx = 256
+    switch (chart.type) {
+      case 'bar':
+        return (
+          <div style={{ width: '100%', height: heightPx }}>
+            <ResponsiveContainer>
+              <RBarChart data={chart.data as any} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey={xKey} />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey={yKey} fill={palette[0]} radius={[4,4,0,0]} />
+              </RBarChart>
+            </ResponsiveContainer>
+          </div>
+        )
+      case 'line':
+        return (
+          <div style={{ width: '100%', height: heightPx }}>
+            <ResponsiveContainer>
+              <RLineChart data={chart.data as any} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey={xKey} />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey={yKey} stroke={palette[0]} strokeWidth={2} dot={false} />
+              </RLineChart>
+            </ResponsiveContainer>
+          </div>
+        )
+      case 'area':
+        return (
+          <div style={{ width: '100%', height: heightPx }}>
+            <ResponsiveContainer>
+              <RAreaChart data={chart.data as any} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+                <defs>
+                  <linearGradient id="colorPrimary" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={palette[0]} stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor={palette[0]} stopOpacity={0.05}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey={xKey} />
+                <YAxis />
+                <Tooltip />
+                <Area type="monotone" dataKey={yKey} stroke={palette[0]} fillOpacity={1} fill="url(#colorPrimary)" />
+              </RAreaChart>
+            </ResponsiveContainer>
+          </div>
+        )
+      case 'pie':
+        return (
+          <div style={{ width: '100%', height: heightPx }}>
+            <ResponsiveContainer>
+              <RPieChart>
+                <Tooltip />
+                <Legend />
+                <Pie data={chart.data as any} dataKey={valueKey} nameKey={nameKey} cx="50%" cy="50%" outerRadius={80} label>
+                  {(chart.data as any[]).map((_, idx) => (
+                    <Cell key={`cell-${idx}`} fill={palette[idx % palette.length]} />
+                  ))}
+                </Pie>
+              </RPieChart>
+            </ResponsiveContainer>
+          </div>
+        )
+      default:
+        return null
     }
   }
 
@@ -208,16 +312,8 @@ export function AnalyticsDashboard({
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`${chart.height ? `h-${chart.height}` : 'h-64'} flex items-center justify-center bg-gray-50 rounded-lg`}>
-                {/* Placeholder for actual chart component */}
-                <div className="text-center">
-                  {chart.type === 'line' && <LineChart className="h-12 w-12 text-gray-400 mx-auto mb-2" />}
-                  {chart.type === 'bar' && <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />}
-                  {chart.type === 'pie' && <PieChart className="h-12 w-12 text-gray-400 mx-auto mb-2" />}
-                  {chart.type === 'area' && <Activity className="h-12 w-12 text-gray-400 mx-auto mb-2" />}
-                  <p className="text-sm text-gray-500">{chart.type.charAt(0).toUpperCase() + chart.type.slice(1)} Chart</p>
-                  <p className="text-xs text-gray-400">{chart.data.length} data points</p>
-                </div>
+              <div className="bg-white rounded-lg">
+                <ChartRenderer chart={chart} />
               </div>
             </CardContent>
           </Card>

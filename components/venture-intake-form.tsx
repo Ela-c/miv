@@ -68,6 +68,26 @@ const ventureIntakeSchema = z.object({
     fundingHistory: z.boolean(),
   }),
   
+  // Step 5: Accessibility & Disability Inclusion
+  washingtonShortSet: z
+    .object({
+      seeing: z.enum(['no_difficulty', 'some_difficulty', 'a_lot_of_difficulty', 'cannot_do_at_all']).optional(),
+      hearing: z.enum(['no_difficulty', 'some_difficulty', 'a_lot_of_difficulty', 'cannot_do_at_all']).optional(),
+      walking: z.enum(['no_difficulty', 'some_difficulty', 'a_lot_of_difficulty', 'cannot_do_at_all']).optional(),
+      cognition: z.enum(['no_difficulty', 'some_difficulty', 'a_lot_of_difficulty', 'cannot_do_at_all']).optional(),
+      selfCare: z.enum(['no_difficulty', 'some_difficulty', 'a_lot_of_difficulty', 'cannot_do_at_all']).optional(),
+      communication: z.enum(['no_difficulty', 'some_difficulty', 'a_lot_of_difficulty', 'cannot_do_at_all']).optional(),
+    })
+    .optional(),
+  disabilityInclusion: z
+    .object({
+      disabilityLedLeadership: z.boolean().optional(),
+      inclusiveHiringPractices: z.boolean().optional(),
+      accessibleProductsOrServices: z.boolean().optional(),
+      notes: z.string().optional(),
+    })
+    .optional(),
+
   // Step 5: GEDSI Goals
   gedsiGoals: z.array(z.string()).min(1, 'Select at least one GEDSI goal'),
 })
@@ -79,7 +99,8 @@ const steps = [
   { id: 2, title: 'Team & Foundation', description: 'Founding team and venture foundation' },
   { id: 3, title: 'Market & Business', description: 'Target market and business model' },
   { id: 4, title: 'Readiness Assessment', description: 'Operational and capital readiness' },
-  { id: 5, title: 'GEDSI Goals', description: 'Impact goals and metrics' },
+  { id: 5, title: 'Accessibility & DLI', description: 'Washington Short Set + Disability Inclusion' },
+  { id: 6, title: 'GEDSI Goals', description: 'Impact goals and metrics' },
 ]
 
 const sectors = [
@@ -467,6 +488,66 @@ export function VentureIntakeForm() {
   )
 
   const renderStep5 = () => (
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <Label>Washington Group Short Set</Label>
+        <p className="text-sm text-gray-500">Identify functional difficulties to better design inclusive support.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            { key: 'seeing', label: 'Seeing' },
+            { key: 'hearing', label: 'Hearing' },
+            { key: 'walking', label: 'Walking' },
+            { key: 'cognition', label: 'Remembering/Concentrating' },
+            { key: 'selfCare', label: 'Self-care (washing/dressing)' },
+            { key: 'communication', label: 'Communication' },
+          ].map((item) => (
+            <div key={item.key} className="space-y-2">
+              <Label className="text-sm">{item.label}</Label>
+              <Select onValueChange={(value) => setValue(`washingtonShortSet.${item.key}` as any, value as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select difficulty" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no_difficulty">No difficulty</SelectItem>
+                  <SelectItem value="some_difficulty">Some difficulty</SelectItem>
+                  <SelectItem value="a_lot_of_difficulty">A lot of difficulty</SelectItem>
+                  <SelectItem value="cannot_do_at_all">Cannot do at all</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <Label>Disability Inclusion Attributes</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            { key: 'disabilityLedLeadership', label: 'Disability-led leadership' },
+            { key: 'inclusiveHiringPractices', label: 'Inclusive hiring practices' },
+            { key: 'accessibleProductsOrServices', label: 'Accessible products/services' },
+          ].map((item) => (
+            <div key={item.key} className="flex items-center space-x-2">
+              <Checkbox
+                id={item.key}
+                onCheckedChange={(checked) => {
+                  setValue(`disabilityInclusion.${item.key}` as any, checked as boolean)
+                }}
+              />
+              <Label htmlFor={item.key}>{item.label}</Label>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="dliNotes">Notes (optional)</Label>
+          <Textarea id="dliNotes" rows={3} placeholder="Any relevant context"
+            {...register('disabilityInclusion.notes' as any)} />
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderStep6 = () => (
     <div className="space-y-6">
       <div className="space-y-4">
         <Label>GEDSI Goals *</Label>
@@ -517,6 +598,8 @@ export function VentureIntakeForm() {
         return renderStep4()
       case 5:
         return renderStep5()
+      case 6:
+        return renderStep6()
       default:
         return null
     }
@@ -610,7 +693,7 @@ export function VentureIntakeForm() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <span>{steps[currentStep - 1].title}</span>
-            {currentStep === 5 && <Sparkles className="h-4 w-4 text-blue-500" />}
+            {currentStep === steps.length && <Sparkles className="h-4 w-4 text-blue-500" />}
           </CardTitle>
           <CardDescription>
             {steps[currentStep - 1].description}

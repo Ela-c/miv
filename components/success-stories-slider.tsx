@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -90,6 +90,14 @@ export function SuccessStoriesSlider() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Auto-play functionality
+  const nextSlide = useCallback(() => {
+    if (isTransitioning) return
+    setSlideDirection('right')
+    setIsTransitioning(true)
+    setCurrentIndex((prev) => (prev + 1) % successStories.length)
+    setTimeout(() => setIsTransitioning(false), 500)
+  }, [isTransitioning])
+
   useEffect(() => {
     if (!isAutoPlaying) return
 
@@ -98,15 +106,7 @@ export function SuccessStoriesSlider() {
     }, 5000)
 
     return () => clearInterval(interval)
-  }, [isAutoPlaying, currentIndex])
-
-  const nextSlide = () => {
-    if (isTransitioning) return
-    setSlideDirection('right')
-    setIsTransitioning(true)
-    setCurrentIndex((prev) => (prev + 1) % successStories.length)
-    setTimeout(() => setIsTransitioning(false), 500)
-  }
+  }, [isAutoPlaying, currentIndex, nextSlide])
 
   const prevSlide = () => {
     if (isTransitioning) return

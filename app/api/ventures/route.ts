@@ -13,7 +13,8 @@ const createVentureSchema = z.object({
   contactPhone: z.string().optional(),
   pitchSummary: z.string().optional(),
   inclusionFocus: z.string().optional(),
-  founderTypes: z.string().min(1, 'Founder types are required'),
+
+  founderTypes: z.array(z.string()).min(1, 'Founder types are required'),
   teamSize: z.string().optional(),
   foundingYear: z.string().optional(),
   targetMarket: z.string().optional(),
@@ -21,6 +22,24 @@ const createVentureSchema = z.object({
   operationalReadiness: z.record(z.any()).optional(),
   capitalReadiness: z.record(z.any()).optional(),
   gedsiGoals: z.array(z.string()).optional(),
+  washingtonShortSet: z
+    .object({
+      seeing: z.enum(['no_difficulty', 'some_difficulty', 'a_lot_of_difficulty', 'cannot_do_at_all']).optional(),
+      hearing: z.enum(['no_difficulty', 'some_difficulty', 'a_lot_of_difficulty', 'cannot_do_at_all']).optional(),
+      walking: z.enum(['no_difficulty', 'some_difficulty', 'a_lot_of_difficulty', 'cannot_do_at_all']).optional(),
+      cognition: z.enum(['no_difficulty', 'some_difficulty', 'a_lot_of_difficulty', 'cannot_do_at_all']).optional(),
+      selfCare: z.enum(['no_difficulty', 'some_difficulty', 'a_lot_of_difficulty', 'cannot_do_at_all']).optional(),
+      communication: z.enum(['no_difficulty', 'some_difficulty', 'a_lot_of_difficulty', 'cannot_do_at_all']).optional(),
+    })
+    .optional(),
+  disabilityInclusion: z
+    .object({
+      disabilityLedLeadership: z.boolean().optional(),
+      inclusiveHiringPractices: z.boolean().optional(),
+      accessibleProductsOrServices: z.boolean().optional(),
+      notes: z.string().optional(),
+    })
+    .optional(),
   challenges: z.string().optional(),
   supportNeeded: z.string().optional(),
   timeline: z.string().optional(),
@@ -133,6 +152,7 @@ export async function POST(request: NextRequest) {
     const venture = await prisma.venture.create({
       data: {
         ...validatedData,
+        founderTypes: JSON.stringify(validatedData.founderTypes),
         createdById: user.id,
       },
       include: {

@@ -17,6 +17,18 @@ export const googleAI = process.env.GOOGLE_AI_API_KEY ? new GoogleGenerativeAI(p
 
 // AI Service Functions
 export class AIServices {
+  private static normalizeFounderTypes(input: any): string[] {
+    try {
+      if (Array.isArray(input)) return input.filter(Boolean).map(String)
+      if (typeof input === 'string') {
+        const parsed = JSON.parse(input)
+        return Array.isArray(parsed) ? parsed.filter(Boolean).map(String) : []
+      }
+    } catch {
+      // ignore parse errors
+    }
+    return []
+  }
   // Document Analysis using fallback responses (no API calls)
   static async analyzeDocument(fileUrl: string, prompt: string) {
     try {
@@ -194,13 +206,14 @@ Tags: Document, Analysis, Review, Professional`;
   // GEDSI Metrics Analysis
   static async analyzeGEDSIMetrics(ventureData: any) {
     try {
+      const founderTypesList = this.normalizeFounderTypes(ventureData.founderTypes)
       const prompt = `
         Analyze the following venture data and suggest relevant IRIS+ GEDSI metrics:
         
         Venture Name: ${ventureData.name}
         Sector: ${ventureData.sector}
         Inclusion Focus: ${ventureData.inclusionFocus}
-        Founder Types: ${ventureData.founderTypes?.join(', ')}
+        Founder Types: ${founderTypesList.join(', ')}
         
         Please suggest 5-10 relevant IRIS+ metrics that would be appropriate for tracking this venture's impact.
         For each metric, provide:
@@ -253,6 +266,7 @@ Tags: Document, Analysis, Review, Professional`;
   // Automated Tagging
   static async generateTags(ventureData: any) {
     try {
+      const founderTypesList = this.normalizeFounderTypes(ventureData.founderTypes)
       const prompt = `
         Generate relevant tags for the following venture:
         
@@ -260,7 +274,7 @@ Tags: Document, Analysis, Review, Professional`;
         Sector: ${ventureData.sector}
         Location: ${ventureData.location}
         Inclusion Focus: ${ventureData.inclusionFocus}
-        Founder Types: ${ventureData.founderTypes?.join(', ')}
+        Founder Types: ${founderTypesList.join(', ')}
         
         Please generate:
         1. Sector tags

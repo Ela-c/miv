@@ -48,6 +48,8 @@ model Venture {
   operationalReadiness Json?   // JSONB for operational readiness checklist
   capitalReadiness    Json?    // JSONB for capital readiness checklist
   gedsiGoals          Json?    // JSONB for GEDSI goals
+  washingtonShortSet  Json?    // Washington Group Short Set responses
+  disabilityInclusion Json?    // Disability inclusion attributes (leadership, hiring, accessible products)
   aiAnalysis          Json?    // JSONB for AI analysis results
   challenges          String?
   supportNeeded       String?
@@ -144,6 +146,19 @@ model CapitalActivity {
   venture         Venture           @relation(fields: [ventureId], references: [id], onDelete: Cascade)
   
   @@map("capital_activities")
+}
+
+// IRIS+ Catalog stored in DB for fast querying and relationships
+model IRISMetricCatalog {
+  id          String  @id @default(cuid())
+  code        String  @unique
+  name        String
+  description String?
+  unit        String?
+  categories  Json?
+  tags        Json?
+
+  @@map("iris_metrics_catalog")
 }
 
 // NextAuth.js Models

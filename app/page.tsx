@@ -77,11 +77,16 @@ export default function HomePage() {
       {/* Background Image */}
       <div className="fixed inset-0">
         {/* Background Image */}
-        <img 
-          src="/bg1.jpeg"
-          alt="Background"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+        <div className="absolute inset-0">
+          <Image
+            src="/bg1.jpeg"
+            alt="Background"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
         
         {/* Subtle Overlay */}
         <div className="absolute inset-0 bg-white/10" />
@@ -208,10 +213,12 @@ export default function HomePage() {
                   <div className="hidden lg:block absolute bottom-0 right-0 w-96 h-96">
                     <div className="w-full h-full relative flex items-end justify-end">
                       <div className="w-full h-full relative" style={{ transform: 'translateX(-50px)', width: '150%' }}>
-                        <img 
-                          src="/michi-foriio.png" 
-                          alt="Michi Foriio" 
-                          className="object-contain w-full h-full"
+                        <Image
+                          src="/michi-foriio.png"
+                          alt="Michi Foriio"
+                          fill
+                          sizes="(min-width: 1024px) 600px, 100vw"
+                          className="object-contain"
                           style={{ objectPosition: 'bottom center' }}
                         />
                       </div>

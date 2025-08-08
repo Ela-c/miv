@@ -603,6 +603,43 @@ function AddMetricForm({ onSubmit, ventures }: { onSubmit: (data: any) => void, 
     unit: '',
     notes: ''
   })
+  const [query, setQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [results, setResults] = useState<Array<{ code: string; name: string; unit?: string; description?: string; gedsiSuggestion?: string }>>([])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    async function search() {
+      if (!query || query.length < 2) {
+        setResults([])
+        return
+      }
+      setSearching(true)
+      try {
+        const res = await fetch(`/api/iris/metrics?q=${encodeURIComponent(query)}&limit=15`, { signal: controller.signal })
+        if (res.ok) {
+          const json = await res.json()
+          setResults(json.results || [])
+        }
+      } catch (e) {
+        // ignore aborts
+      } finally {
+        setSearching(false)
+      }
+    }
+    const t = setTimeout(search, 250)
+    return () => { controller.abort(); clearTimeout(t) }
+  }, [query])
+
+  const applyMetric = (m: { code: string; name: string; unit?: string; gedsiSuggestion?: string }) => {
+    setFormData(prev => ({
+      ...prev,
+      metricCode: m.code,
+      metricName: m.name,
+      unit: m.unit || prev.unit,
+      category: (m.gedsiSuggestion as any) || prev.category
+    }))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -634,12 +671,34 @@ function AddMetricForm({ onSubmit, ventures }: { onSubmit: (data: any) => void, 
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Metric Code</Label>
-          <Input
-            value={formData.metricCode}
-            onChange={(e) => setFormData(prev => ({ ...prev, metricCode: e.target.value }))}
-            placeholder="e.g., OI.1"
-          />
+        <Label>Metric (search IRIS+)</Label>
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by code or name (e.g., PI4060 or Women)"
+        />
+        {searching && <p className="text-xs text-gray-500">Searching...</p>}
+        {results.length > 0 && (
+          <div className="max-h-48 overflow-auto border rounded p-2 space-y-1 bg-white">
+            {results.map((r) => (
+              <button
+                key={r.code}
+                type="button"
+                className="w-full text-left px-2 py-1 hover:bg-gray-50 rounded"
+                onClick={() => applyMetric(r)}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium mr-2">{r.code}</span>
+                  {r.gedsiSuggestion && (
+                    <Badge variant="outline">{r.gedsiSuggestion}</Badge>
+                  )}
+                </div>
+                <div className="text-sm text-gray-700">{r.name}</div>
+                {r.unit && <div className="text-xs text-gray-500">Unit: {r.unit}</div>}
+              </button>
+            ))}
+          </div>
+        )}
         </div>
 
         <div className="space-y-2">

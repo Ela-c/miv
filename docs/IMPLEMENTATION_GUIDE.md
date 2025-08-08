@@ -69,15 +69,15 @@ miv-enterprise/
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
-│   ├── 📁 analytics-service/             # Python-based analytics
+│   ├── 📁 analytics-service/             # Node.js-based analytics
 │   │   ├── 📁 src/
-│   │   │   ├── 📁 api/
-│   │   │   ├── 📁 models/
+│   │   │   ├── 📁 controllers/
 │   │   │   ├── 📁 services/
+│   │   │   ├── 📁 models/
 │   │   │   └── 📁 utils/
-│   │   ├── requirements.txt
+│   │   ├── package.json
 │   │   ├── Dockerfile
-│   │   └── main.py
+│   │   └── tsconfig.json
 │   │
 │   └── 📁 notification-service/
 │       ├── 📁 src/

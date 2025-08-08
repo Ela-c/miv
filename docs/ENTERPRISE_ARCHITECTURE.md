@@ -21,7 +21,7 @@
 ┌───────▼────────┐    ┌────────▼────────┐    ┌────────▼────────┐
 │  Document      │    │  Analytics      │    │  Notification   │
 │  Service       │    │  Service        │    │  Service        │
-│  (Node.js)     │    │  (Python)       │    │  (Node.js)      │
+│  (Node.js)     │    │  (Node.js)      │    │  (Node.js)      │
 └────────────────┘    └─────────────────┘    └─────────────────┘
         │                       │                       │
 ┌───────▼────────┐    ┌────────▼────────┐    ┌────────▼────────┐
@@ -38,11 +38,14 @@
 | Component | Current | Enterprise | Rationale |
 |-----------|---------|------------|-----------|
 | **Frontend** | Next.js 15 | Next.js 15 + React 19 | ✅ Keep - Excellent choice |
-| **Database** | SQLite | PostgreSQL + Redis | Scalability & Performance |
+| **Backend** | Next.js API Routes | Node.js 20 + Fastify | Performance & Scalability |
+| **Database** | SQLite | PostgreSQL 15 + Redis 7 | Enterprise-grade reliability |
+| **Search** | None | Elasticsearch 8 | Full-text search capabilities |
+| **Vector DB** | None | ChromaDB | AI embeddings storage |
 | **Authentication** | NextAuth.js | Auth0/Okta | Enterprise SSO |
 | **File Storage** | Local | AWS S3 + CloudFront | Scalable & Global |
-| **Message Queue** | None | Apache Kafka/RabbitMQ | Event-driven architecture |
-| **Monitoring** | Basic | DataDog/New Relic | Enterprise observability |
+| **Message Queue** | None | Apache Kafka + RabbitMQ | Event-driven architecture |
+| **Monitoring** | Basic | DataDog + Prometheus + Grafana | Enterprise observability |
 | **CI/CD** | Manual | GitHub Actions + ArgoCD | Automated deployment |
 | **Containerization** | None | Docker + Kubernetes | Scalability & portability |
 

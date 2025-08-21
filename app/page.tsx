@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { 
   ArrowRight,
   Target, 
@@ -42,499 +43,715 @@ import {
   BarChart,
   PieChart,
   Activity,
-  UserPlus
+  UserPlus,
+  Menu,
+  X,
+  Search,
+  Bell,
+  Settings,
+  LogIn,
+  User,
+  ChevronRight,
+  ExternalLink,
+  Download,
+  Mail,
+  Phone,
+  MessageCircle,
+  Clock,
+  Globe2,
+  Lock,
+  RefreshCw,
+  Brain
 } from "lucide-react"
 import { Logo } from "@/components/logo"
-import { SuccessStoriesSlider } from "@/components/success-stories-slider"
 
 export default function HomePage() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-  const [isVisible, setIsVisible] = useState(false)
-  const heroRef = useRef<HTMLDivElement>(null)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState('hero')
+  const [email, setEmail] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
+  // Intersection Observer for smooth scrolling
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY })
-    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id)
+          }
+        })
+      },
+      { threshold: 0.5 }
+    )
 
-    const handleVisibilityChange = () => {
-      setIsVisible(true)
-    }
+    const sections = document.querySelectorAll('section[id]')
+    sections.forEach((section) => observer.observe(section))
 
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('load', handleVisibilityChange)
-
-    setTimeout(() => setIsVisible(true), 100)
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('load', handleVisibilityChange)
-    }
+    return () => observer.disconnect()
   }, [])
 
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    // Simulate API call
+    setTimeout(() => {
+      setIsLoading(false)
+      setEmail('')
+      // Show success message
+    }, 2000)
+  }
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-white text-gray-900 relative overflow-hidden">
-      {/* Background Image */}
-      <div className="fixed inset-0">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          <Image
-            src="/bg1.jpeg"
-            alt="Background"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-        </div>
-        
-        {/* Subtle Overlay */}
-        <div className="absolute inset-0 bg-white/10" />
-
-        {/* Minimal Mouse Follow Glow */}
-        <div 
-          className="absolute w-96 h-96 bg-gray-200/10 rounded-none blur-3xl pointer-events-none transition-transform duration-500 ease-out"
-          style={{
-            left: mousePosition.x - 192,
-            top: mousePosition.y - 192,
-            transform: `translate(${mousePosition.x * 0.02}px, ${mousePosition.y * 0.02}px)`
-          }}
-        />
-      </div>
-
-      {/* Header Navigation */}
-      <header className="relative z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 sticky top-0">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Logo size="md" className="shadow-lg" />
-                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-30" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  MIV Platform
-                </h1>
-                <p className="text-sm text-gray-500">Enterprise Impact Platform</p>
-              </div>
+    <div className="min-h-screen bg-white text-gray-900">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <div className="flex items-center">
+              <Logo />
             </div>
-            
-            <div className="flex items-center space-x-6">
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-8">
+              <button 
+                onClick={() => scrollToSection('features')}
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Features
+              </button>
+              <button 
+                onClick={() => scrollToSection('solutions')}
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Solutions
+              </button>
+              <button 
+                onClick={() => scrollToSection('pricing')}
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Pricing
+              </button>
+              <button 
+                onClick={() => scrollToSection('about')}
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                About
+              </button>
+              <button 
+                onClick={() => scrollToSection('contact')}
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Contact
+              </button>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="hidden md:flex items-center space-x-4">
               <Link href="/auth/login">
-                <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-300">
+                <Button variant="ghost" size="sm">
+                  <LogIn className="h-4 w-4 mr-2" />
                   Sign In
                 </Button>
               </Link>
-              <Link href="/auth/register">
-                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300 group">
-                  <span className="group-hover:scale-105 transition-transform duration-300">Get Started</span>
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+              <Link href="/dashboard">
+                <Button size="sm">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Get Started
                 </Button>
               </Link>
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
         </div>
-      </header>
 
-      {/* Hero Section */}
-      <section ref={heroRef} className="relative z-10 min-h-screen flex items-center py-20">
-        
-        {/* Grid Lines */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-8 left-8 w-32 h-32 border-l border-t border-gray-300 opacity-30"></div>
-          <div className="absolute top-8 right-8 w-32 h-32 border-r border-t border-gray-300 opacity-30"></div>
-          <div className="absolute bottom-8 left-8 w-32 h-32 border-l border-b border-gray-300 opacity-30"></div>
-          <div className="absolute bottom-8 right-8 w-32 h-32 border-r border-b border-gray-300 opacity-30"></div>
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-200">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              <button 
+                onClick={() => { scrollToSection('features'); setIsMenuOpen(false); }}
+                className="block px-3 py-2 text-gray-600 hover:text-gray-900"
+              >
+                Features
+              </button>
+              <button 
+                onClick={() => { scrollToSection('solutions'); setIsMenuOpen(false); }}
+                className="block px-3 py-2 text-gray-600 hover:text-gray-900"
+              >
+                Solutions
+              </button>
+              <button 
+                onClick={() => { scrollToSection('pricing'); setIsMenuOpen(false); }}
+                className="block px-3 py-2 text-gray-600 hover:text-gray-900"
+              >
+                Pricing
+              </button>
+              <button 
+                onClick={() => { scrollToSection('about'); setIsMenuOpen(false); }}
+                className="block px-3 py-2 text-gray-600 hover:text-gray-900"
+              >
+                About
+              </button>
+              <button 
+                onClick={() => { scrollToSection('contact'); setIsMenuOpen(false); }}
+                className="block px-3 py-2 text-gray-600 hover:text-gray-900"
+              >
+                Contact
+              </button>
+              <div className="pt-4 space-y-2">
+                <Button variant="ghost" size="sm" className="w-full">
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Sign In
+                </Button>
+                <Button size="sm" className="w-full">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Get Started
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </nav>
+
+            {/* Hero Section */}
+      <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0">
+          {/* Geometric Shapes */}
+          <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-20 w-80 h-80 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-full blur-3xl animate-pulse delay-500"></div>
+          
+          {/* Floating Particles */}
+          <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+          <div className="absolute top-1/3 right-1/3 w-1 h-1 bg-purple-400 rounded-full animate-bounce delay-300"></div>
+          <div className="absolute bottom-1/4 left-1/3 w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce delay-700"></div>
+          <div className="absolute top-2/3 right-1/4 w-1 h-1 bg-blue-400 rounded-full animate-bounce delay-1000"></div>
         </div>
 
-        <div className="w-full h-full relative">
-          {/* Grid Lines */}
-          <div className="absolute inset-0 pointer-events-none">
-            {/* Horizontal line */}
-            <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-200"></div>
-            {/* Vertical line */}
-            <div className="absolute top-0 bottom-0 right-1/4 w-px bg-gray-200"></div>
+        {/* Main Content */}
+        <div className="max-w-6xl mx-auto px-6 lg:px-8 relative z-10 text-center">
+          {/* Status Badge */}
+          <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 text-white/90 font-medium mb-8">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="text-sm">Platform Live</span>
+            <span className="text-green-400 font-semibold">•</span>
+            <span className="text-sm">AI-Powered</span>
           </div>
 
+          {/* Main Headline */}
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+            <span className="block">The Future of</span>
+            <span className="block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Venture Intelligence
+            </span>
+          </h1>
 
+          {/* Subtitle */}
+          <p className="text-xl md:text-2xl text-slate-300 mb-12 max-w-4xl mx-auto leading-relaxed">
+            Unlock the power of AI-driven venture management. From deal sourcing to exit strategies, 
+            MIV provides the intelligence you need to make data-driven investment decisions.
+          </p>
 
-          {/* Main Content Grid */}
-          <div className="max-w-7xl mx-auto px-6 h-full">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 h-full items-center">
-              
-              {/* Left Content Area */}
-              <div className="lg:col-span-3 space-y-8 relative z-10">
-                {/* Main Headline */}
-                <div className="space-y-4">
-                  <h1 className="text-8xl lg:text-9xl font-extrabold leading-none text-black tracking-tight">
-                    MIV
-                  </h1>
-                  <div className="relative inline-block">
-                    <h2 className="text-6xl lg:text-7xl font-extrabold leading-none text-black tracking-tight relative z-10">
-                      PLATFORM
-                    </h2>
-                    <div className="absolute inset-0 bg-lime-400 transform -rotate-1 -translate-y-1 z-0"></div>
-                  </div>
-                </div>
-
-                {/* Descriptive Text */}
-                <p className="text-xl text-gray-800 max-w-2xl leading-relaxed font-normal">
-                  We are a diverse group of thinkers and tinkerers, strategists, creatives and technology experts dedicated to empowering inclusive ventures across Southeast Asia.
-                </p>
-
-                {/* CTA Button */}
-                <div className="pt-4">
-                  <Link href="/dashboard">
-                    <Button size="lg" className="bg-black text-white hover:bg-gray-900 text-lg px-8 py-4 rounded-none border-0 transition-all duration-300 group font-medium">
-                      <span>Discover</span>
-                      <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
-                    </Button>
-                  </Link>
-                </div>
-
-                {/* Keywords/Footer */}
-                <div className="pt-8">
-                  <div className="flex items-center space-x-4 text-sm text-gray-800 font-normal tracking-wide">
-                    <span>Discover</span>
-                    <span>•</span>
-                    <span>Build</span>
-                    <span>•</span>
-                    <span>Scale</span>
-                    <span>•</span>
-                    <span>Impact</span>
-                  </div>
-                </div>
+          {/* Key Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 max-w-4xl mx-auto">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                <Brain className="h-6 w-6 text-white" />
               </div>
-
-              {/* Bottom Right Michi Foriio Image */}
-              <div className="lg:col-span-1 flex justify-end items-end">
-                <div className="relative w-96 h-96">
-                  {/* Michi Foriio Image */}
-                  <div className="hidden lg:block absolute bottom-0 right-0 w-96 h-96">
-                    <div className="w-full h-full relative flex items-end justify-end">
-                      <div className="w-full h-full relative" style={{ transform: 'translateX(-50px)', width: '150%' }}>
-                        <Image
-                          src="/michi-foriio.png"
-                          alt="Michi Foriio"
-                          fill
-                          sizes="(min-width: 1024px) 600px, 100vw"
-                          className="object-contain"
-                          style={{ objectPosition: 'bottom center' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <h3 className="text-white font-semibold mb-2">AI Analytics</h3>
+              <p className="text-slate-400 text-sm">Intelligent insights and predictive modeling</p>
+            </div>
+            
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                <Target className="h-6 w-6 text-white" />
               </div>
+              <h3 className="text-white font-semibold mb-2">Pipeline Management</h3>
+              <p className="text-slate-400 text-sm">End-to-end deal flow optimization</p>
+            </div>
+            
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300">
+              <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-blue-500 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                <Heart className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="text-white font-semibold mb-2">Impact Tracking</h3>
+              <p className="text-slate-400 text-sm">Comprehensive ESG and GEDSI metrics</p>
+            </div>
+          </div>
 
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+            <Link href="/dashboard">
+              <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-2xl font-semibold px-8 py-4 text-lg transform hover:scale-105 transition-all duration-200">
+                <Rocket className="mr-2 h-5 w-5" />
+                Get Started Free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Button size="lg" className="bg-white/10 text-white hover:bg-white/20 font-semibold px-8 py-4 text-lg border border-white/30 backdrop-blur-md transform hover:scale-105 transition-all duration-200">
+              <Play className="mr-2 h-5 w-5" />
+              Watch Demo
+            </Button>
+          </div>
+
+          {/* Trust Indicators */}
+          <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-8 text-slate-400">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-4 w-4 text-green-400" />
+              <span className="text-sm">500+ Ventures Managed</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-4 w-4 text-green-400" />
+              <span className="text-sm">$2.5B+ Capital Deployed</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-4 w-4 text-green-400" />
+              <span className="text-sm">98% Success Rate</span>
             </div>
           </div>
         </div>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-          <div className="flex flex-col items-center space-y-2 text-yellow-500">
-            <span className="text-sm font-light">Scroll to explore</span>
-            <ChevronDown className="h-6 w-6" />
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="relative z-10 py-32 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-6xl font-extrabold text-black mb-6 tracking-tight">
-              IMPACT
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto font-normal">
-              Transforming venture management across Southeast Asia with measurable results.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { value: "150+", label: "Ventures", icon: Building2, color: "from-blue-500 to-blue-600" },
-              { value: "$25M+", label: "Facilitated", icon: DollarSign, color: "from-emerald-500 to-emerald-600" },
-              { value: "95%", label: "GEDSI Compliance", icon: Target, color: "from-purple-500 to-purple-600" },
-              { value: "6", label: "Countries", icon: Globe, color: "from-orange-500 to-orange-600" }
-            ].map((stat, index) => (
-              <div
-                key={index}
-                className="group relative"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <div className="relative bg-white border border-gray-200 hover:border-gray-300 transition-all duration-300 group-hover:scale-105 shadow-lg hover:shadow-xl p-8 text-center">
-                  <div className={`w-16 h-16 bg-gradient-to-r ${stat.color} rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                    <stat.icon className="h-8 w-8 text-white" />
-                  </div>
-                  <div className="text-5xl font-extrabold text-black mb-3 tracking-tight">{stat.value}</div>
-                  <div className="text-gray-600 font-normal text-lg">{stat.label}</div>
-                </div>
+        {/* Floating Platform Preview */}
+        <div className="absolute bottom-8 right-8 hidden lg:block">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 shadow-2xl transform hover:scale-105 transition-all duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
               </div>
-            ))}
+              <span className="text-white/60 text-xs">MIV Dashboard</span>
+            </div>
+            <div className="space-y-2">
+              <div className="h-2 bg-white/20 rounded-full"></div>
+              <div className="h-2 bg-white/20 rounded-full w-3/4"></div>
+              <div className="h-2 bg-white/20 rounded-full w-1/2"></div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="relative z-10 py-32 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-20">
-            <h2 className="text-6xl font-extrabold text-black mb-6 tracking-tight">
-              BUILT FOR
-            </h2>
-            <div className="relative inline-block">
-              <h3 className="text-5xl font-extrabold text-black tracking-tight relative z-10">
-                MODERN ENTERPRISES
-              </h3>
-              <div className="absolute inset-0 bg-lime-400 transform -rotate-1 -translate-y-1 z-0"></div>
-            </div>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto mt-8 font-normal">
-              Experience enterprise-grade venture management with cutting-edge technology 
-              and intuitive design that scales with your organization.
-            </p>
-          </div>
-
-          {/* Core Platform Section */}
-          <div className="mb-20">
-            <div className="mb-16">
-              <div className="flex items-center justify-center space-x-6 mb-6">
-                <div className="w-12 h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
-                <h3 className="text-5xl font-black text-black tracking-tighter uppercase">Core</h3>
-                <div className="w-12 h-1 bg-gradient-to-r from-purple-500 to-blue-500"></div>
-              </div>
-              <div className="text-center">
-                <h4 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-blue-600 to-purple-600 tracking-tighter uppercase mb-4">Platform</h4>
-                <p className="text-base text-gray-600 max-w-2xl mx-auto font-medium">
-                  The foundation of your venture management success
-                </p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-              {[
-                {
-                  icon: Cpu,
-                  title: "AI-Powered Intelligence",
-                  description: "Advanced machine learning algorithms provide predictive insights and automated decision support",
-                  color: "from-blue-500 to-cyan-500"
-                },
-                {
-                  icon: Database,
-                  title: "Real-time Analytics",
-                  description: "Live dashboards and comprehensive reporting with instant data synchronization",
-                  color: "from-purple-500 to-pink-500"
-                },
-                {
-                  icon: Network,
-                  title: "Seamless Integration",
-                  description: "Connect with existing systems and third-party tools through our robust API ecosystem",
-                  color: "from-emerald-500 to-teal-500"
-                },
-                {
-                  icon: Shield,
-                  title: "Enterprise Security",
-                  description: "Bank-grade security with SOC 2 compliance and end-to-end encryption",
-                  color: "from-orange-500 to-red-500"
-                }
-              ].map((feature, index) => (
-                <div key={index} className="group flex items-start space-x-6">
-                  <div className={`w-12 h-12 bg-gradient-to-r ${feature.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                    <feature.icon className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-extrabold text-black mb-3 tracking-tight">{feature.title}</h4>
-                    <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Success Stories Section */}
-          <div>
-            <div className="mb-16">
-              <div className="text-center mb-6">
-                <h3 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-green-500 to-teal-600 tracking-tighter uppercase mb-4">Success</h3>
-                <h4 className="text-5xl font-black text-black tracking-tighter uppercase">Stories</h4>
-              </div>
-              <div className="flex items-center justify-center space-x-6">
-                <div className="w-16 h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
-                <p className="text-base text-gray-600 font-medium">
-                  Real impact from real ventures
-                </p>
-                <div className="w-16 h-1 bg-gradient-to-r from-teal-500 to-emerald-500"></div>
-              </div>
-            </div>
-            <SuccessStoriesSlider />
-          </div>
-        </div>
-      </section>
-
-      {/* Analytics Preview */}
-      <section className="relative z-10 py-32 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl font-bold text-gray-900 mb-6">
-              Powerful
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent ml-3">
-                Analytics
-              </span>
+      <section id="features" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Everything You Need to Scale Your Venture Portfolio
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Get real-time insights into your venture portfolio with advanced analytics and reporting tools.
+              From deal sourcing to exit management, MIV provides the tools and insights you need to make data-driven investment decisions.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: BarChart,
-                title: "Performance Metrics",
-                description: "Track key performance indicators and growth metrics across your portfolio",
-                color: "from-blue-500 to-cyan-500"
-              },
-              {
-                icon: PieChart,
-                title: "Impact Analysis",
-                description: "Measure social impact and GEDSI compliance with detailed analytics",
-                color: "from-purple-500 to-pink-500"
-              },
-              {
-                icon: Activity,
-                title: "Real-time Monitoring",
-                description: "Monitor venture progress and performance in real-time with live dashboards",
-                color: "from-emerald-500 to-teal-500"
-              }
-            ].map((item, index) => (
-              <Card key={index} className="bg-white border-gray-200 hover:border-gray-300 transition-all duration-300 hover:shadow-xl group">
-                <CardContent className="p-8 text-center">
-                  <div className={`w-16 h-16 bg-gradient-to-r ${item.color} rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                    <item.icon className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">{item.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{item.description}</p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Feature Cards */}
+            <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md">
+              <CardHeader>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
+                  <Target className="h-6 w-6 text-blue-600" />
+                </div>
+                <CardTitle>Pipeline Management</CardTitle>
+                <CardDescription>
+                  Streamline your deal flow from initial contact to final investment decision
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md">
+              <CardHeader>
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors">
+                  <Brain className="h-6 w-6 text-purple-600" />
+                </div>
+                <CardTitle>AI-Powered Analytics</CardTitle>
+                <CardDescription>
+                  Get intelligent insights and risk assessments powered by advanced AI
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md">
+              <CardHeader>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
+                  <Users className="h-6 w-6 text-green-600" />
+                </div>
+                <CardTitle>GEDSI Integration</CardTitle>
+                <CardDescription>
+                  Track and measure gender, equity, disability, and social inclusion impact
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md">
+              <CardHeader>
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-orange-200 transition-colors">
+                  <BarChart3 className="h-6 w-6 text-orange-600" />
+                </div>
+                <CardTitle>Advanced Reporting</CardTitle>
+                <CardDescription>
+                  Generate comprehensive reports and visualizations for stakeholders
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md">
+              <CardHeader>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-red-200 transition-colors">
+                  <DollarSign className="h-6 w-6 text-red-600" />
+                </div>
+                <CardTitle>Capital Facilitation</CardTitle>
+                <CardDescription>
+                  Manage investment rounds, due diligence, and capital deployment
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md">
+              <CardHeader>
+                <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-indigo-200 transition-colors">
+                  <Shield className="h-6 w-6 text-indigo-600" />
+                </div>
+                <CardTitle>Enterprise Security</CardTitle>
+                <CardDescription>
+                  Bank-level security with SOC 2 compliance and data encryption
+                </CardDescription>
+              </CardHeader>
+            </Card>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="relative z-10 py-32 bg-gradient-to-r from-blue-600 to-indigo-600">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <div className="relative">
-            <div className="relative bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-16">
-              <h2 className="text-5xl font-bold text-white mb-6">
-                Ready to Transform
-                <span className="bg-gradient-to-r from-blue-200 to-indigo-200 bg-clip-text text-transparent ml-3">
-                  Your Impact?
-                </span>
-              </h2>
-              <p className="text-xl text-blue-100 mb-12 max-w-2xl mx-auto">
-                Join hundreds of organizations already using MIV to scale their inclusive venture programs 
-                and drive measurable social impact across Southeast Asia.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <Link href="/auth/login">
-                  <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-xl px-12 py-6 shadow-2xl group">
-                    <Zap className="mr-3 h-6 w-6 group-hover:rotate-12 transition-transform duration-300" />
-                    <span>Launch Platform</span>
-                    <ArrowUpRight className="ml-3 h-6 w-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
-                  </Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 text-xl px-12 py-6 backdrop-blur-sm group">
-                    <UserPlus className="mr-3 h-6 w-6 group-hover:scale-110 transition-transform duration-300" />
-                    <span>Get Started</span>
-                  </Button>
-                </Link>
+      {/* Solutions Section */}
+      <section id="solutions" className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Solutions for Every Stage
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Whether you're a seed-stage fund or a growth equity firm, MIV adapts to your investment strategy and scale.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">
+                Early-Stage Venture Capital
+              </h3>
+              <ul className="space-y-4">
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <span>Deal sourcing and pipeline management</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <span>Due diligence automation</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <span>Portfolio company tracking</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <span>Impact measurement and reporting</span>
+                </li>
+              </ul>
+            </div>
+            <div className="bg-white p-8 rounded-2xl shadow-lg">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Building2 className="h-8 w-8 text-blue-600" />
+                </div>
+                <h4 className="text-xl font-semibold mb-2">Venture Capital</h4>
+                <p className="text-gray-600 mb-4">Perfect for funds managing $10M - $100M</p>
+                <Button>Learn More</Button>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Simple, Transparent Pricing
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Choose the plan that fits your fund size and investment strategy.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Starter Plan */}
+            <Card className="relative border-2 hover:border-blue-500 transition-colors">
+              <CardHeader className="text-center">
+                <CardTitle>Starter</CardTitle>
+                <div className="text-3xl font-bold">$99<span className="text-lg text-gray-500">/month</span></div>
+                <CardDescription>Perfect for emerging managers</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Up to 50 ventures
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Basic analytics
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Email support
+                  </li>
+                </ul>
+                <Button className="w-full">Get Started</Button>
+              </CardContent>
+            </Card>
+
+            {/* Professional Plan */}
+            <Card className="relative border-2 border-blue-500 shadow-lg scale-105">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <Badge className="bg-blue-500 text-white">Most Popular</Badge>
+              </div>
+              <CardHeader className="text-center">
+                <CardTitle>Professional</CardTitle>
+                <div className="text-3xl font-bold">$299<span className="text-lg text-gray-500">/month</span></div>
+                <CardDescription>For growing venture firms</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Up to 200 ventures
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    AI-powered analytics
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Priority support
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Advanced reporting
+                  </li>
+                </ul>
+                <Button className="w-full">Get Started</Button>
+              </CardContent>
+            </Card>
+
+            {/* Enterprise Plan */}
+            <Card className="relative border-2 hover:border-purple-500 transition-colors">
+              <CardHeader className="text-center">
+                <CardTitle>Enterprise</CardTitle>
+                <div className="text-3xl font-bold">Custom</div>
+                <CardDescription>For large investment firms</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Unlimited ventures
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Custom integrations
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Dedicated support
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    White-label options
+                  </li>
+                </ul>
+                <Button variant="outline" className="w-full">Contact Sales</Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                About MIV
+              </h2>
+              <p className="text-lg text-gray-600 mb-6">
+                MIV (Mekong Inclusive Ventures) is a comprehensive platform designed to empower venture capital firms across Southeast Asia. We believe in the power of inclusive investment to drive sustainable economic growth.
+              </p>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <div className="text-2xl font-bold text-blue-600">500+</div>
+                  <div className="text-gray-600">Ventures Managed</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-purple-600">$2.8B</div>
+                  <div className="text-gray-600">Capital Facilitated</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-green-600">89%</div>
+                  <div className="text-gray-600">GEDSI Compliance</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-orange-600">76%</div>
+                  <div className="text-gray-600">Success Rate</div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white p-8 rounded-2xl shadow-lg">
+              <h3 className="text-xl font-semibold mb-4">Our Mission</h3>
+              <p className="text-gray-600 mb-6">
+                To democratize access to venture capital and create sustainable impact through technology-driven investment management.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Target className="h-5 w-5 text-blue-500 mr-3" />
+                  <span>Inclusive Investment</span>
+                </div>
+                <div className="flex items-center">
+                  <Globe className="h-5 w-5 text-green-500 mr-3" />
+                  <span>Sustainable Growth</span>
+                </div>
+                <div className="flex items-center">
+                  <Users className="h-5 w-5 text-purple-500 mr-3" />
+                  <span>Community Impact</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Get in Touch
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Ready to transform your venture pipeline? Let's discuss how MIV can help you achieve your investment goals.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div>
+              <h3 className="text-2xl font-semibold mb-6">Contact Information</h3>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Mail className="h-5 w-5 text-blue-500 mr-3" />
+                  <span>hello@miv-platform.com</span>
+                </div>
+                <div className="flex items-center">
+                  <Phone className="h-5 w-5 text-green-500 mr-3" />
+                  <span>+1 (555) 123-4567</span>
+                </div>
+                <div className="flex items-center">
+                  <MapPin className="h-5 w-5 text-purple-500 mr-3" />
+                  <span>Singapore, Southeast Asia</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <form className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input placeholder="First Name" />
+                  <Input placeholder="Last Name" />
+                </div>
+                <Input type="email" placeholder="Email Address" />
+                <Input placeholder="Company" />
+                <textarea 
+                  className="w-full p-3 border border-gray-300 rounded-md resize-none"
+                  rows={4}
+                  placeholder="Message"
+                />
+                <Button className="w-full">Send Message</Button>
+              </form>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 py-20 bg-gray-900 text-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-12">
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center space-x-3 mb-8">
-                <Logo size="md" />
-                <div>
-                  <h3 className="text-xl font-bold text-white">MIV Platform</h3>
-                  <p className="text-sm text-gray-400">Enterprise Impact Platform</p>
-                </div>
+              <div className="flex items-center mb-4">
+                <Logo />
+                <span className="ml-2 text-xl font-bold">MIV</span>
               </div>
-              <p className="text-gray-400 leading-relaxed">
-                Empowering inclusive ventures across Southeast Asia through innovative technology, 
-                AI-powered insights, and comprehensive impact measurement.
+              <p className="text-gray-400 mb-4">
+                Empowering inclusive ventures across Southeast Asia through innovative pipeline management.
               </p>
+              <div className="flex space-x-4">
+                <a href="#" className="text-gray-400 hover:text-white">
+                  <Globe className="h-5 w-5" />
+                </a>
+                <a href="#" className="text-gray-400 hover:text-white">
+                  <MessageCircle className="h-5 w-5" />
+                </a>
+                <a href="#" className="text-gray-400 hover:text-white">
+                  <Users className="h-5 w-5" />
+                </a>
+              </div>
             </div>
-            
             <div>
-              <h4 className="font-semibold text-white mb-6">Platform</h4>
-              <ul className="space-y-4 text-gray-400">
-                <li><Link href="/auth/login" className="hover:text-white transition-colors">Dashboard</Link></li>
-                <li><Link href="/dashboard/venture-intake" className="hover:text-white transition-colors">Venture Intake</Link></li>
-                <li><Link href="/dashboard/gedsi-tracker" className="hover:text-white transition-colors">GEDSI Tracker</Link></li>
-                <li><Link href="/dashboard/capital-facilitation" className="hover:text-white transition-colors">Capital Facilitation</Link></li>
+              <h4 className="font-semibold mb-4">Product</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white">Features</a></li>
+                <li><a href="#" className="hover:text-white">Pricing</a></li>
+                <li><a href="#" className="hover:text-white">API</a></li>
+                <li><a href="#" className="hover:text-white">Integrations</a></li>
               </ul>
             </div>
-            
             <div>
-              <h4 className="font-semibold text-white mb-6">Features</h4>
-              <ul className="space-y-4 text-gray-400">
-                <li>AI-Powered Analysis</li>
-                <li>IRIS+ Metrics</li>
-                <li>Impact Reporting</li>
-                <li>Team Collaboration</li>
-                <li>Mobile App</li>
+              <h4 className="font-semibold mb-4">Company</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white">About</a></li>
+                <li><a href="#" className="hover:text-white">Blog</a></li>
+                <li><a href="#" className="hover:text-white">Careers</a></li>
+                <li><a href="#" className="hover:text-white">Press</a></li>
               </ul>
             </div>
-            
             <div>
-              <h4 className="font-semibold text-white mb-6">Support</h4>
-              <ul className="space-y-4 text-gray-400">
-                <li>Documentation</li>
-                <li>API Reference</li>
-                <li>Training Resources</li>
-                <li>Contact Support</li>
-                <li>Community Forum</li>
+              <h4 className="font-semibold mb-4">Support</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white">Help Center</a></li>
+                <li><a href="#" className="hover:text-white">Contact</a></li>
+                <li><a href="#" className="hover:text-white">Status</a></li>
+                <li><a href="#" className="hover:text-white">Security</a></li>
               </ul>
             </div>
           </div>
-          
-          <div className="border-t border-gray-800 mt-16 pt-8 text-center">
-            <p className="text-gray-400">&copy; 2024 Mekong Inclusive Ventures. All rights reserved.</p>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2024 MIV Platform. All rights reserved.</p>
           </div>
         </div>
       </footer>
-
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(180deg); }
-        }
-        
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out;
-        }
-      `}</style>
     </div>
   )
 }

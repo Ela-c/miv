@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -102,13 +102,7 @@ export default function VentureDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (params.id) {
-      fetchVentureData()
-    }
-  }, [params.id])
-
-  const fetchVentureData = async () => {
+  const fetchVentureData = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/ventures/${params.id}`)
@@ -122,7 +116,13 @@ export default function VentureDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    if (params.id) {
+      fetchVentureData()
+    }
+  }, [params.id, fetchVentureData])
 
   const getStageColor = (stage: string) => {
     const colors: { [key: string]: string } = {

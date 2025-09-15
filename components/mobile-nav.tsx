@@ -23,7 +23,7 @@ import {
   ChartPie,
   Users,
   Settings,
-  CircleQuestion,
+  // CircleQuestion, // Not available in this version
   FileText,
   Brain,
   BarChart,

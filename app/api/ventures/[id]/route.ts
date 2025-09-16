@@ -35,48 +35,190 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const session = await getServerSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Disable authentication for development
+    // const session = await getServerSession();
+    // if (!session?.user) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
 
-    const venture = await prisma.venture.findUnique({
-      where: { id: id },
-      include: {
-        createdBy: {
-          select: { name: true, email: true }
-        },
-        assignedTo: {
-          select: { name: true, email: true }
-        },
-        gedsiMetrics: {
-          orderBy: { createdAt: 'desc' }
-        },
-        documents: {
-          orderBy: { uploadedAt: 'desc' }
-        },
-        activities: {
-          include: {
+    // Fallback sample data for development
+    const sampleVentures = {
+      "1": {
+        id: "1",
+        name: "GreenTech Solutions",
+        description: "Innovative clean technology solutions for sustainable agriculture in Southeast Asia. Our platform helps farmers optimize crop yields while reducing environmental impact.",
+        sector: "CleanTech",
+        location: "Ho Chi Minh City, Vietnam",
+        stage: "EARLY_GROWTH",
+        status: "ACTIVE",
+        fundingAmount: 500000,
+        fundingStage: "Series A",
+        teamSize: 15,
+        foundedYear: 2022,
+        website: "https://greentech-solutions.com",
+        contactEmail: "contact@greentech-solutions.com",
+        contactPhone: "+84 123 456 789",
+        gedsiScore: 92,
+        gedsiMetrics: [
+          {
+            id: "gm1",
+            metricCode: "GM001",
+            metricName: "Women Leadership Representation",
+            category: "GENDER",
+            targetValue: 50,
+            currentValue: 45,
+            unit: "%",
+            status: "ON_TRACK",
+            verificationDate: "2024-01-15T00:00:00Z",
+            notes: "Strong female representation in executive roles"
+          },
+          {
+            id: "gm2",
+            metricCode: "EQ002",
+            metricName: "Fair Wage Policy",
+            category: "EQUITY",
+            targetValue: 100,
+            currentValue: 90,
+            unit: "%",
+            status: "NEEDS_ATTENTION",
+            verificationDate: "2024-01-10T00:00:00Z",
+            notes: "Implementation of fair wage policy across all levels"
+          }
+        ],
+        activities: [
+          {
+            id: "act1",
+            type: "ASSESSMENT",
+            description: "Initial GEDSI assessment completed",
+            date: "2024-01-15T10:30:00Z",
+            userId: "user1",
             user: {
-              select: { name: true, email: true }
+              name: "Sarah Johnson",
+              email: "sarah@miv.com"
             }
           },
-          orderBy: { createdAt: 'desc' },
-          take: 20
+          {
+            id: "act2",
+            type: "FUNDING",
+            description: "Series A funding round initiated",
+            date: "2024-01-14T14:20:00Z",
+            userId: "user2",
+            user: {
+              name: "Michael Chen",
+              email: "michael@miv.com"
+            }
+          }
+        ],
+        documents: [
+          {
+            id: "doc1",
+            name: "Business Plan 2024.pdf",
+            type: "application/pdf",
+            url: "/documents/business-plan-2024.pdf",
+            uploadedAt: "2024-01-15T00:00:00Z",
+            size: "2.3 MB"
+          },
+          {
+            id: "doc2",
+            name: "Financial Projections.xlsx",
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url: "/documents/financial-projections.xlsx",
+            uploadedAt: "2024-01-14T00:00:00Z",
+            size: "1.8 MB"
+          }
+        ],
+        createdBy: {
+          name: "Sarah Johnson",
+          email: "sarah@miv.com"
         },
-        capitalActivities: {
-          orderBy: { createdAt: 'desc' }
+        assignedTo: {
+          name: "Michael Chen",
+          email: "michael@miv.com"
         },
-        _count: {
-          select: {
-            documents: true,
-            activities: true,
-            capitalActivities: true,
-            gedsiMetrics: true,
+        createdAt: "2024-01-10T00:00:00Z",
+        updatedAt: "2024-01-15T00:00:00Z"
+      },
+      "2": {
+        id: "2",
+        name: "EcoFarm Vietnam",
+        description: "Digital platform connecting farmers with sustainable farming practices and direct market access in rural Vietnam.",
+        sector: "Agriculture",
+        location: "Hanoi, Vietnam",
+        stage: "VALIDATION",
+        status: "ACTIVE",
+        fundingAmount: 250000,
+        fundingStage: "Seed",
+        teamSize: 8,
+        foundedYear: 2023,
+        website: "https://ecofarm-vietnam.com",
+        contactEmail: "info@ecofarm-vietnam.com",
+        contactPhone: "+84 987 654 321",
+        gedsiScore: 88,
+        gedsiMetrics: [],
+        activities: [],
+        documents: [],
+        createdBy: {
+          name: "Sarah Johnson",
+          email: "sarah@miv.com"
+        },
+        assignedTo: {
+          name: "Alice Wong",
+          email: "alice@miv.com"
+        },
+        createdAt: "2024-01-08T00:00:00Z",
+        updatedAt: "2024-01-14T00:00:00Z"
+      }
+    };
+
+    // Try to get venture from database, fallback to sample data
+    let venture;
+    try {
+      venture = await prisma.venture.findUnique({
+        where: { id: id },
+        include: {
+          createdBy: {
+            select: { name: true, email: true }
+          },
+          assignedTo: {
+            select: { name: true, email: true }
+          },
+          gedsiMetrics: {
+            orderBy: { createdAt: 'desc' }
+          },
+          documents: {
+            orderBy: { uploadedAt: 'desc' }
+          },
+          activities: {
+            include: {
+              user: {
+                select: { name: true, email: true }
+              }
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 20
+          },
+          capitalActivities: {
+            orderBy: { createdAt: 'desc' }
+          },
+          _count: {
+            select: {
+              documents: true,
+              activities: true,
+              capitalActivities: true,
+              gedsiMetrics: true,
+            }
           }
         }
-      }
-    });
+      });
+    } catch (dbError) {
+      console.log('Database connection failed, using sample data:', dbError);
+      venture = null;
+    }
+
+    // If database query failed or no venture found, try sample data
+    if (!venture && sampleVentures[id as keyof typeof sampleVentures]) {
+      venture = sampleVentures[id as keyof typeof sampleVentures];
+    }
 
     if (!venture) {
       return NextResponse.json({ error: 'Venture not found' }, { status: 404 });

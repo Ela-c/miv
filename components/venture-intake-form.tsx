@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { FileUpload } from '@/components/ui/file-upload'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,7 +26,20 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
-  Sparkles
+  Sparkles,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  TrendingUp,
+  Heart,
+  Shield,
+  Award,
+  Eye,
+  Ear,
+  Activity,
+  Brain,
+  MessageSquare
 } from 'lucide-react'
 
 // Form validation schema
@@ -202,286 +216,501 @@ export function VentureIntakeForm() {
   }
 
   const renderStep1 = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="name">Venture Name *</Label>
-          <Input
-            id="name"
-            {...register('name')}
-            placeholder="Enter venture name"
-          />
-          {errors.name && (
-            <p className="text-sm text-red-500">{errors.name.message}</p>
-          )}
+        {/* Venture Name */}
+        <div className="md:col-span-2">
+          <Card className="p-4 border-dashed border-2 hover:border-blue-400 transition-colors">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Building2 className="h-4 w-4 text-blue-500" />
+                <Label htmlFor="name" className="font-medium">Venture Name *</Label>
+              </div>
+              <Input
+                id="name"
+                {...register('name')}
+                placeholder="e.g., EcoFarm Solutions"
+                className="border-0 text-lg font-medium focus:ring-2 focus:ring-blue-500"
+              />
+              {errors.name && (
+                <p className="text-sm text-red-500 flex items-center space-x-1">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>{errors.name.message}</span>
+                </p>
+              )}
+            </div>
+          </Card>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="sector">Sector *</Label>
-          <Select onValueChange={(value) => setValue('sector', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select sector" />
-            </SelectTrigger>
-            <SelectContent>
-              {sectors.map((sector) => (
-                <SelectItem key={sector} value={sector}>
-                  {sector}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.sector && (
-            <p className="text-sm text-red-500">{errors.sector.message}</p>
-          )}
-        </div>
+        {/* Sector */}
+        <Card className="p-4 hover:shadow-md transition-shadow">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-4 w-4 text-green-500" />
+              <Label htmlFor="sector" className="font-medium">Industry Sector *</Label>
+            </div>
+            <Select onValueChange={(value) => setValue('sector', value)}>
+              <SelectTrigger className="border-0 focus:ring-2 focus:ring-green-500">
+                <SelectValue placeholder="Choose your industry" />
+              </SelectTrigger>
+              <SelectContent>
+                {sectors.map((sector) => (
+                  <SelectItem key={sector} value={sector}>
+                    {sector}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.sector && (
+              <p className="text-sm text-red-500 flex items-center space-x-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>{errors.sector.message}</span>
+              </p>
+            )}
+          </div>
+        </Card>
 
-        <div className="space-y-2">
-          <Label htmlFor="location">Location *</Label>
-          <Input
-            id="location"
-            {...register('location')}
-            placeholder="City, Country"
-          />
-          {errors.location && (
-            <p className="text-sm text-red-500">{errors.location.message}</p>
-          )}
-        </div>
+        {/* Location */}
+        <Card className="p-4 hover:shadow-md transition-shadow">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <MapPin className="h-4 w-4 text-purple-500" />
+              <Label htmlFor="location" className="font-medium">Location *</Label>
+            </div>
+            <Input
+              id="location"
+              {...register('location')}
+              placeholder="Ho Chi Minh City, Vietnam"
+              className="border-0 focus:ring-2 focus:ring-purple-500"
+            />
+            {errors.location && (
+              <p className="text-sm text-red-500 flex items-center space-x-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>{errors.location.message}</span>
+              </p>
+            )}
+          </div>
+        </Card>
 
-        <div className="space-y-2">
-          <Label htmlFor="contactEmail">Contact Email *</Label>
-          <Input
-            id="contactEmail"
-            type="email"
-            {...register('contactEmail')}
-            placeholder="contact@venture.com"
-          />
-          {errors.contactEmail && (
-            <p className="text-sm text-red-500">{errors.contactEmail.message}</p>
-          )}
-        </div>
+        {/* Contact Email */}
+        <Card className="p-4 hover:shadow-md transition-shadow">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Mail className="h-4 w-4 text-blue-500" />
+              <Label htmlFor="contactEmail" className="font-medium">Contact Email *</Label>
+            </div>
+            <Input
+              id="contactEmail"
+              type="email"
+              {...register('contactEmail')}
+              placeholder="founder@yourventure.com"
+              className="border-0 focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.contactEmail && (
+              <p className="text-sm text-red-500 flex items-center space-x-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>{errors.contactEmail.message}</span>
+              </p>
+            )}
+          </div>
+        </Card>
 
-        <div className="space-y-2">
-          <Label htmlFor="contactPhone">Contact Phone</Label>
-          <Input
-            id="contactPhone"
-            {...register('contactPhone')}
-            placeholder="+1234567890"
-          />
+        {/* Contact Phone */}
+        <Card className="p-4 hover:shadow-md transition-shadow">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Phone className="h-4 w-4 text-green-500" />
+              <Label htmlFor="contactPhone" className="font-medium">Contact Phone</Label>
+              <Badge variant="secondary" className="text-xs">Optional</Badge>
+            </div>
+            <Input
+              id="contactPhone"
+              {...register('contactPhone')}
+              placeholder="+84 901 234 567"
+              className="border-0 focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+        </Card>
+      </div>
+
+      {/* Progress indicator */}
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+          <span>✅ Basic information</span>
+          <span>Next: Team & Foundation</span>
         </div>
       </div>
     </div>
   )
 
   const renderStep2 = () => (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <Label>Founder Types *</Label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {founderTypes.map((type) => (
-            <div key={type} className="flex items-center space-x-2">
-              <Checkbox
-                id={type}
-                onCheckedChange={(checked) => {
-                  const current = watchedValues.founderTypes || []
-                  if (checked) {
-                    setValue('founderTypes', [...current, type])
-                  } else {
-                    setValue('founderTypes', current.filter(t => t !== type))
-                  }
-                }}
-              />
-              <Label htmlFor={type} className="text-sm capitalize">
-                {type.replace('-', ' ')}
-              </Label>
-            </div>
-          ))}
+    <div className="space-y-8">
+
+      {/* Founder Types */}
+      <Card className="p-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-purple-200">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <Heart className="h-5 w-5 text-purple-500" />
+            <Label className="font-semibold text-lg">Founder Types *</Label>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Select all that apply to your founding team
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {founderTypes.map((type) => (
+              <Card key={type} className="p-3 hover:shadow-md transition-shadow cursor-pointer">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={type}
+                    onCheckedChange={(checked) => {
+                      const current = watchedValues.founderTypes || []
+                      if (checked) {
+                        setValue('founderTypes', [...current, type])
+                      } else {
+                        setValue('founderTypes', current.filter(t => t !== type))
+                      }
+                    }}
+                  />
+                  <Label htmlFor={type} className="text-sm capitalize cursor-pointer">
+                    {type.replace('-', ' ')}
+                  </Label>
+                </div>
+              </Card>
+            ))}
+          </div>
+          {errors.founderTypes && (
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="h-3 w-3" />
+              <span>{errors.founderTypes.message}</span>
+            </p>
+          )}
         </div>
-        {errors.founderTypes && (
-          <p className="text-sm text-red-500">{errors.founderTypes.message}</p>
-        )}
-      </div>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="teamSize">Team Size *</Label>
-          <Select onValueChange={(value) => setValue('teamSize', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select team size" />
-            </SelectTrigger>
-            <SelectContent>
-              {teamSizes.map((size) => (
-                <SelectItem key={size} value={size}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.teamSize && (
-            <p className="text-sm text-red-500">{errors.teamSize.message}</p>
-          )}
-        </div>
+        {/* Team Size */}
+        <Card className="p-4 hover:shadow-md transition-shadow">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Users className="h-4 w-4 text-blue-500" />
+              <Label htmlFor="teamSize" className="font-medium">Team Size *</Label>
+            </div>
+            <Select onValueChange={(value) => setValue('teamSize', value)}>
+              <SelectTrigger className="border-0 focus:ring-2 focus:ring-blue-500">
+                <SelectValue placeholder="How many team members?" />
+              </SelectTrigger>
+              <SelectContent>
+                {teamSizes.map((size) => (
+                  <SelectItem key={size} value={size}>
+                    {size} people
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.teamSize && (
+              <p className="text-sm text-red-500 flex items-center space-x-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>{errors.teamSize.message}</span>
+              </p>
+            )}
+          </div>
+        </Card>
 
+        {/* Founding Year */}
+        <Card className="p-4 hover:shadow-md transition-shadow">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-green-500" />
+              <Label htmlFor="foundingYear" className="font-medium">Founding Year *</Label>
+            </div>
+            <Input
+              id="foundingYear"
+              {...register('foundingYear')}
+              placeholder="When was your venture founded?"
+              className="border-0 focus:ring-2 focus:ring-green-500"
+            />
+            {errors.foundingYear && (
+              <p className="text-sm text-red-500 flex items-center space-x-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>{errors.foundingYear.message}</span>
+              </p>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Pitch Summary */}
+      <Card className="p-6 border-dashed border-2 hover:border-blue-400 transition-colors">
         <div className="space-y-2">
-          <Label htmlFor="foundingYear">Founding Year *</Label>
-          <Input
-            id="foundingYear"
-            {...register('foundingYear')}
-            placeholder="2023"
+          <div className="flex items-center space-x-2">
+            <MessageSquare className="h-4 w-4 text-blue-500" />
+            <Label htmlFor="pitchSummary" className="font-medium">Pitch Summary *</Label>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">Tell us about your venture's mission and value proposition</p>
+          <Textarea
+            id="pitchSummary"
+            {...register('pitchSummary')}
+            placeholder="We are solving [problem] for [target audience] by providing [solution]. Our unique approach is..."
+            rows={4}
+            className="border-0 focus:ring-2 focus:ring-blue-500 resize-none"
           />
-          {errors.foundingYear && (
-            <p className="text-sm text-red-500">{errors.foundingYear.message}</p>
+          {errors.pitchSummary && (
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="h-3 w-3" />
+              <span>{errors.pitchSummary.message}</span>
+            </p>
           )}
         </div>
-      </div>
+      </Card>
 
-      <div className="space-y-2">
-        <Label htmlFor="pitchSummary">Pitch Summary *</Label>
-        <Textarea
-          id="pitchSummary"
-          {...register('pitchSummary')}
-          placeholder="Brief description of your venture and value proposition..."
-          rows={4}
-        />
-        {errors.pitchSummary && (
-          <p className="text-sm text-red-500">{errors.pitchSummary.message}</p>
-        )}
-      </div>
+      {/* Inclusion Focus */}
+      <Card className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200">
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Heart className="h-4 w-4 text-green-500" />
+            <Label htmlFor="inclusionFocus" className="font-medium">Inclusion Focus *</Label>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">How does your venture promote inclusion and address social challenges?</p>
+          <Textarea
+            id="inclusionFocus"
+            {...register('inclusionFocus')}
+            placeholder="Our venture promotes inclusion by... We address social challenges through... Our target beneficiaries are..."
+            rows={3}
+            className="border-0 focus:ring-2 focus:ring-green-500 resize-none"
+          />
+          {errors.inclusionFocus && (
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="h-3 w-3" />
+              <span>{errors.inclusionFocus.message}</span>
+            </p>
+          )}
+        </div>
+      </Card>
 
-      <div className="space-y-2">
-        <Label htmlFor="inclusionFocus">Inclusion Focus *</Label>
-        <Textarea
-          id="inclusionFocus"
-          {...register('inclusionFocus')}
-          placeholder="How does your venture promote inclusion and address social challenges?"
-          rows={3}
-        />
-        {errors.inclusionFocus && (
-          <p className="text-sm text-red-500">{errors.inclusionFocus.message}</p>
-        )}
+      {/* Progress indicator */}
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+          <span>✅ Team & Foundation</span>
+          <span>Next: Market & Business Model</span>
+        </div>
       </div>
     </div>
   )
 
   const renderStep3 = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Target Market */}
+        <Card className="p-4 hover:shadow-md transition-shadow">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Target className="h-4 w-4 text-blue-500" />
+              <Label htmlFor="targetMarket" className="font-medium">Target Market *</Label>
+            </div>
+            <Input
+              id="targetMarket"
+              {...register('targetMarket')}
+              placeholder="Rural farmers in Vietnam"
+              className="border-0 focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.targetMarket && (
+              <p className="text-sm text-red-500 flex items-center space-x-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>{errors.targetMarket.message}</span>
+              </p>
+            )}
+          </div>
+        </Card>
+
+        {/* Revenue Model */}
+        <Card className="p-4 hover:shadow-md transition-shadow">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-4 w-4 text-green-500" />
+              <Label htmlFor="revenueModel" className="font-medium">Revenue Model *</Label>
+            </div>
+            <Select onValueChange={(value) => setValue('revenueModel', value)}>
+              <SelectTrigger className="border-0 focus:ring-2 focus:ring-green-500">
+                <SelectValue placeholder="How do you make money?" />
+              </SelectTrigger>
+              <SelectContent>
+                {revenueModels.map((model) => (
+                  <SelectItem key={model} value={model}>
+                    {model}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.revenueModel && (
+              <p className="text-sm text-red-500 flex items-center space-x-1">
+                <AlertCircle className="h-3 w-3" />
+                <span>{errors.revenueModel.message}</span>
+              </p>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Challenges */}
+      <Card className="p-6 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950 border-orange-200">
         <div className="space-y-2">
-          <Label htmlFor="targetMarket">Target Market *</Label>
-          <Input
-            id="targetMarket"
-            {...register('targetMarket')}
-            placeholder="e.g., Rural farmers in Vietnam"
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="h-4 w-4 text-orange-500" />
+            <Label htmlFor="challenges" className="font-medium">Key Challenges *</Label>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">What are the main challenges your venture faces?</p>
+          <Textarea
+            id="challenges"
+            {...register('challenges')}
+            placeholder="Market access, funding constraints, regulatory barriers, technology challenges..."
+            rows={3}
+            className="border-0 focus:ring-2 focus:ring-orange-500 resize-none"
           />
-          {errors.targetMarket && (
-            <p className="text-sm text-red-500">{errors.targetMarket.message}</p>
+          {errors.challenges && (
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="h-3 w-3" />
+              <span>{errors.challenges.message}</span>
+            </p>
           )}
         </div>
+      </Card>
 
+      {/* Support Needed */}
+      <Card className="p-6 border-dashed border-2 hover:border-purple-400 transition-colors">
         <div className="space-y-2">
-          <Label htmlFor="revenueModel">Revenue Model *</Label>
-          <Select onValueChange={(value) => setValue('revenueModel', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select revenue model" />
-            </SelectTrigger>
-            <SelectContent>
-              {revenueModels.map((model) => (
-                <SelectItem key={model} value={model}>
-                  {model}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.revenueModel && (
-            <p className="text-sm text-red-500">{errors.revenueModel.message}</p>
+          <div className="flex items-center space-x-2">
+            <Heart className="h-4 w-4 text-purple-500" />
+            <Label htmlFor="supportNeeded" className="font-medium">Support Needed *</Label>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">What type of support do you need from MIV?</p>
+          <Textarea
+            id="supportNeeded"
+            {...register('supportNeeded')}
+            placeholder="Funding, mentorship, market access, technical assistance, network connections..."
+            rows={3}
+            className="border-0 focus:ring-2 focus:ring-purple-500 resize-none"
+          />
+          {errors.supportNeeded && (
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="h-3 w-3" />
+              <span>{errors.supportNeeded.message}</span>
+            </p>
           )}
         </div>
-      </div>
+      </Card>
 
-      <div className="space-y-2">
-        <Label htmlFor="challenges">Key Challenges *</Label>
-        <Textarea
-          id="challenges"
-          {...register('challenges')}
-          placeholder="What are the main challenges your venture faces?"
-          rows={3}
-        />
-        {errors.challenges && (
-          <p className="text-sm text-red-500">{errors.challenges.message}</p>
-        )}
-      </div>
+      {/* Timeline */}
+      <Card className="p-4 hover:shadow-md transition-shadow">
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Calendar className="h-4 w-4 text-indigo-500" />
+            <Label htmlFor="timeline" className="font-medium">Timeline to Investment Readiness *</Label>
+          </div>
+          <Input
+            id="timeline"
+            {...register('timeline')}
+            placeholder="6-12 months to Series A"
+            className="border-0 focus:ring-2 focus:ring-indigo-500"
+          />
+          {errors.timeline && (
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="h-3 w-3" />
+              <span>{errors.timeline.message}</span>
+            </p>
+          )}
+        </div>
+      </Card>
 
-      <div className="space-y-2">
-        <Label htmlFor="supportNeeded">Support Needed *</Label>
-        <Textarea
-          id="supportNeeded"
-          {...register('supportNeeded')}
-          placeholder="What type of support do you need from MIV?"
-          rows={3}
-        />
-        {errors.supportNeeded && (
-          <p className="text-sm text-red-500">{errors.supportNeeded.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="timeline">Timeline to Investment Readiness *</Label>
-        <Input
-          id="timeline"
-          {...register('timeline')}
-          placeholder="e.g., 6-12 months to Series A"
-        />
-        {errors.timeline && (
-          <p className="text-sm text-red-500">{errors.timeline.message}</p>
-        )}
+      {/* Progress indicator */}
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+          <span>✅ Market & Business Model</span>
+          <span>Next: Readiness Assessment</span>
+        </div>
       </div>
     </div>
   )
 
   const renderStep4 = () => (
     <div className="space-y-8">
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Operational Readiness</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            { key: 'businessPlan', label: 'Business Plan' },
-            { key: 'financialProjections', label: 'Financial Projections' },
-            { key: 'legalStructure', label: 'Legal Structure' },
-            { key: 'teamComposition', label: 'Team Composition' },
-            { key: 'marketResearch', label: 'Market Research' },
-          ].map((item) => (
-            <div key={item.key} className="flex items-center space-x-2">
-                             <Checkbox
-                 id={item.key}
-                 onCheckedChange={(checked) => {
-                   setValue(`operationalReadiness.${item.key}` as any, checked as boolean)
-                 }}
-               />
-              <Label htmlFor={item.key}>{item.label}</Label>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Capital Readiness</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            { key: 'pitchDeck', label: 'Pitch Deck' },
-            { key: 'financialStatements', label: 'Financial Statements' },
-            { key: 'investorMaterials', label: 'Investor Materials' },
-            { key: 'dueDiligence', label: 'Due Diligence Ready' },
-            { key: 'fundingHistory', label: 'Funding History' },
-          ].map((item) => (
-            <div key={item.key} className="flex items-center space-x-2">
-                             <Checkbox
-                 id={item.key}
-                 onCheckedChange={(checked) => {
-                   setValue(`capitalReadiness.${item.key}` as any, checked as boolean)
-                 }}
-               />
-              <Label htmlFor={item.key}>{item.label}</Label>
-            </div>
-          ))}
+      {/* Operational Readiness */}
+      <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <FileText className="h-5 w-5 text-blue-500" />
+            <h3 className="text-lg font-semibold">Operational Readiness</h3>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Check all the operational components you have ready
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { key: 'businessPlan', label: 'Business Plan', icon: FileText },
+              { key: 'financialProjections', label: 'Financial Projections', icon: TrendingUp },
+              { key: 'legalStructure', label: 'Legal Structure', icon: Shield },
+              { key: 'teamComposition', label: 'Team Composition', icon: Users },
+              { key: 'marketResearch', label: 'Market Research', icon: Target },
+            ].map((item) => (
+              <Card key={item.key} className="p-3 hover:shadow-md transition-shadow cursor-pointer">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id={item.key}
+                    onCheckedChange={(checked) => {
+                      setValue(`operationalReadiness.${item.key}` as any, checked as boolean)
+                    }}
+                  />
+                  <item.icon className="h-4 w-4 text-blue-500" />
+                  <Label htmlFor={item.key} className="cursor-pointer">{item.label}</Label>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* Capital Readiness */}
+      <Card className="p-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-purple-200">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <Award className="h-5 w-5 text-purple-500" />
+            <h3 className="text-lg font-semibold">Capital Readiness</h3>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Check all the capital-related materials you have prepared
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { key: 'pitchDeck', label: 'Pitch Deck', icon: FileText },
+              { key: 'financialStatements', label: 'Financial Statements', icon: TrendingUp },
+              { key: 'investorMaterials', label: 'Investor Materials', icon: Award },
+              { key: 'dueDiligence', label: 'Due Diligence Ready', icon: CheckCircle },
+              { key: 'fundingHistory', label: 'Funding History', icon: Calendar },
+            ].map((item) => (
+              <Card key={item.key} className="p-3 hover:shadow-md transition-shadow cursor-pointer">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id={item.key}
+                    onCheckedChange={(checked) => {
+                      setValue(`capitalReadiness.${item.key}` as any, checked as boolean)
+                    }}
+                  />
+                  <item.icon className="h-4 w-4 text-purple-500" />
+                  <Label htmlFor={item.key} className="cursor-pointer">{item.label}</Label>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* Progress indicator */}
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+          <span>✅ Readiness Assessment</span>
+          <span>Next: Accessibility & Disability Inclusion</span>
         </div>
       </div>
     </div>
@@ -489,100 +718,232 @@ export function VentureIntakeForm() {
 
   const renderStep5 = () => (
     <div className="space-y-8">
-      <div className="space-y-2">
-        <Label>Washington Group Short Set</Label>
-        <p className="text-sm text-gray-500">Identify functional difficulties to better design inclusive support.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            { key: 'seeing', label: 'Seeing' },
-            { key: 'hearing', label: 'Hearing' },
-            { key: 'walking', label: 'Walking' },
-            { key: 'cognition', label: 'Remembering/Concentrating' },
-            { key: 'selfCare', label: 'Self-care (washing/dressing)' },
-            { key: 'communication', label: 'Communication' },
-          ].map((item) => (
-            <div key={item.key} className="space-y-2">
-              <Label className="text-sm">{item.label}</Label>
-              <Select onValueChange={(value) => setValue(`washingtonShortSet.${item.key}` as any, value as any)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select difficulty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no_difficulty">No difficulty</SelectItem>
-                  <SelectItem value="some_difficulty">Some difficulty</SelectItem>
-                  <SelectItem value="a_lot_of_difficulty">A lot of difficulty</SelectItem>
-                  <SelectItem value="cannot_do_at_all">Cannot do at all</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      <div className="space-y-4">
-        <Label>Disability Inclusion Attributes</Label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            { key: 'disabilityLedLeadership', label: 'Disability-led leadership' },
-            { key: 'inclusiveHiringPractices', label: 'Inclusive hiring practices' },
-            { key: 'accessibleProductsOrServices', label: 'Accessible products/services' },
-          ].map((item) => (
-            <div key={item.key} className="flex items-center space-x-2">
-              <Checkbox
-                id={item.key}
-                onCheckedChange={(checked) => {
-                  setValue(`disabilityInclusion.${item.key}` as any, checked as boolean)
-                }}
-              />
-              <Label htmlFor={item.key}>{item.label}</Label>
-            </div>
-          ))}
+      {/* Washington Group Short Set */}
+      <Card className="p-6 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-950 dark:to-cyan-950 border-teal-200">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <Activity className="h-5 w-5 text-teal-500" />
+            <Label className="font-semibold text-lg">Washington Group Short Set</Label>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Identify functional difficulties to better design inclusive support
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { key: 'seeing', label: 'Seeing', icon: Eye },
+              { key: 'hearing', label: 'Hearing', icon: Ear },
+              { key: 'walking', label: 'Walking/Mobility', icon: Activity },
+              { key: 'cognition', label: 'Remembering/Concentrating', icon: Brain },
+              { key: 'selfCare', label: 'Self-care (washing/dressing)', icon: Heart },
+              { key: 'communication', label: 'Communication', icon: MessageSquare },
+            ].map((item) => (
+              <Card key={item.key} className="p-4 hover:shadow-md transition-shadow">
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <item.icon className="h-4 w-4 text-teal-500" />
+                    <Label className="text-sm font-medium">{item.label}</Label>
+                  </div>
+                  <Select onValueChange={(value) => setValue(`washingtonShortSet.${item.key}` as any, value as any)}>
+                    <SelectTrigger className="border-0 focus:ring-2 focus:ring-teal-500">
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no_difficulty">No difficulty</SelectItem>
+                      <SelectItem value="some_difficulty">Some difficulty</SelectItem>
+                      <SelectItem value="a_lot_of_difficulty">A lot of difficulty</SelectItem>
+                      <SelectItem value="cannot_do_at_all">Cannot do at all</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </Card>
+            ))}
+          </div>
         </div>
+      </Card>
+
+      {/* Disability Inclusion Attributes */}
+      <Card className="p-6 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950 dark:to-blue-950 border-cyan-200">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <Shield className="h-5 w-5 text-cyan-500" />
+            <Label className="font-semibold text-lg">Disability Inclusion Attributes</Label>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Select all that apply to your venture's inclusion practices
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { key: 'disabilityLedLeadership', label: 'Disability-led leadership', icon: Users },
+              { key: 'inclusiveHiringPractices', label: 'Inclusive hiring practices', icon: CheckCircle },
+              { key: 'accessibleProductsOrServices', label: 'Accessible products/services', icon: Shield },
+            ].map((item) => (
+              <Card key={item.key} className="p-3 hover:shadow-md transition-shadow cursor-pointer">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id={item.key}
+                    onCheckedChange={(checked) => {
+                      setValue(`disabilityInclusion.${item.key}` as any, checked as boolean)
+                    }}
+                  />
+                  <item.icon className="h-4 w-4 text-cyan-500" />
+                  <Label htmlFor={item.key} className="cursor-pointer text-sm">{item.label}</Label>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* Additional Notes */}
+      <Card className="p-6 border-dashed border-2 hover:border-teal-400 transition-colors">
         <div className="space-y-2">
-          <Label htmlFor="dliNotes">Notes (optional)</Label>
-          <Textarea id="dliNotes" rows={3} placeholder="Any relevant context"
-            {...register('disabilityInclusion.notes' as any)} />
+          <div className="flex items-center space-x-2">
+            <MessageSquare className="h-4 w-4 text-teal-500" />
+            <Label htmlFor="dliNotes" className="font-medium">Additional Notes</Label>
+            <Badge variant="secondary" className="text-xs">Optional</Badge>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">Any relevant context about accessibility or inclusion practices</p>
+          <Textarea 
+            id="dliNotes" 
+            rows={3} 
+            placeholder="Additional context about your venture's accessibility features, inclusion practices, or specific needs..."
+            className="border-0 focus:ring-2 focus:ring-teal-500 resize-none"
+            {...register('disabilityInclusion.notes' as any)} 
+          />
+        </div>
+      </Card>
+
+      {/* Progress indicator */}
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+          <span>✅ Accessibility & Disability Inclusion</span>
+          <span>Next: GEDSI Goals</span>
         </div>
       </div>
     </div>
   )
 
   const renderStep6 = () => (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <Label>GEDSI Goals *</Label>
-        <div className="grid grid-cols-1 gap-3">
-          {gedsiGoals.map((goal) => (
-            <div key={goal} className="flex items-center space-x-2">
-              <Checkbox
-                id={goal}
-                onCheckedChange={(checked) => {
-                  const current = watchedValues.gedsiGoals || []
-                  if (checked) {
-                    setValue('gedsiGoals', [...current, goal])
-                  } else {
-                    setValue('gedsiGoals', current.filter(g => g !== goal))
-                  }
-                }}
-              />
-              <Label htmlFor={goal} className="text-sm">
-                {goal}
-              </Label>
-            </div>
-          ))}
-        </div>
-        {errors.gedsiGoals && (
-          <p className="text-sm text-red-500">{errors.gedsiGoals.message}</p>
-        )}
-      </div>
+    <div className="space-y-8">
 
-      <Alert>
-        <Target className="h-4 w-4" />
-        <AlertDescription>
-          These GEDSI goals will be used to track your venture's impact and align with IRIS+ metrics. 
-          Our AI system will suggest additional relevant metrics based on your venture profile.
+      {/* GEDSI Goals */}
+      <Card className="p-6 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950 dark:to-green-950 border-emerald-200">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <Target className="h-5 w-5 text-emerald-500" />
+            <Label className="font-semibold text-lg">GEDSI Goals *</Label>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            These goals will be used to track your venture's impact and align with IRIS+ metrics
+          </p>
+          <div className="grid grid-cols-1 gap-3">
+            {gedsiGoals.map((goal) => (
+              <Card key={goal} className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id={goal}
+                    className="mt-0.5"
+                    onCheckedChange={(checked) => {
+                      const current = watchedValues.gedsiGoals || []
+                      if (checked) {
+                        setValue('gedsiGoals', [...current, goal])
+                      } else {
+                        setValue('gedsiGoals', current.filter(g => g !== goal))
+                      }
+                    }}
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor={goal} className="cursor-pointer font-medium">
+                      {goal.split(' - ')[0]} - {goal.split(' - ')[1]}
+                    </Label>
+                    <div className="mt-1">
+                      <Badge variant="secondary" className="text-xs">
+                        IRIS+ Metric
+                      </Badge>
+                    </div>
+                  </div>
+                  <CheckCircle className="h-4 w-4 text-emerald-500" />
+                </div>
+              </Card>
+            ))}
+          </div>
+          {errors.gedsiGoals && (
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="h-3 w-3" />
+              <span>{errors.gedsiGoals.message}</span>
+            </p>
+          )}
+        </div>
+      </Card>
+
+      {/* AI Analysis Info */}
+      <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200">
+        <div className="flex items-start space-x-3">
+          <div className="p-2 bg-blue-500 rounded-full">
+            <Sparkles className="h-4 w-4 text-white" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-semibold text-blue-900 dark:text-blue-100">AI-Powered Impact Analysis</h4>
+            <p className="text-sm text-blue-700 dark:text-blue-200 mt-1">
+              After submitting your form, our AI system will analyze your venture and suggest additional relevant IRIS+ metrics based on your sector, business model, and GEDSI goals.
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Supporting Documents */}
+      <Card className="p-6 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-950 dark:to-gray-950 border-slate-200">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <Upload className="h-5 w-5 text-slate-500" />
+            <h3 className="text-lg font-semibold">Supporting Documents</h3>
+            <Badge variant="secondary" className="text-xs">Optional</Badge>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Upload any documents that support your application and help us better understand your venture
+          </p>
+          
+          <div className="space-y-4">
+            <h4 className="font-medium text-slate-700 dark:text-slate-300 flex items-center space-x-2">
+              <FileText className="h-4 w-4" />
+              <span>All Supporting Materials</span>
+            </h4>
+            <FileUpload
+              acceptedFileTypes={['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.jpg', '.png', '.jpeg']}
+              maxFileSize={10 * 1024 * 1024} // 10MB
+              maxFiles={10}
+              onUpload={(files) => {
+                console.log('Supporting documents uploaded:', files)
+                // Handle file upload for all supporting documents
+              }}
+              placeholder="Upload pitch decks, business plans, financial statements, team bios, certificates..."
+            />
+          </div>
+          
+          <div className="bg-slate-100 dark:bg-slate-900 p-3 rounded-lg">
+            <p className="text-xs text-slate-800 dark:text-slate-200">
+              💡 <strong>Helpful documents:</strong> Pitch deck, business plan, financial projections, team bios, legal documents, market research, accessibility reports, impact reports, or any other materials that showcase your venture.
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Final Info Alert */}
+      <Alert className="border-emerald-200 bg-emerald-50 dark:bg-emerald-950">
+        <Award className="h-4 w-4 text-emerald-600" />
+        <AlertDescription className="text-emerald-800 dark:text-emerald-200">
+          🎉 You're almost done! After submitting, you'll receive a comprehensive readiness assessment and personalized recommendations for your venture's growth.
         </AlertDescription>
       </Alert>
+
+      {/* Progress indicator */}
+      <div className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950 dark:to-green-950 p-4 rounded-lg border border-emerald-200">
+        <div className="flex items-center justify-between text-sm text-emerald-800 dark:text-emerald-200">
+          <span>✅ GEDSI Goals & Impact</span>
+          <span>Ready to Submit & Analyze!</span>
+        </div>
+      </div>
     </div>
   )
 
@@ -719,7 +1080,7 @@ export function VentureIntakeForm() {
                 <Button
                   type="button"
                   onClick={nextStep}
-                  disabled={!isValid}
+                  disabled={isValid}
                 >
                   Next
                   <ChevronRight className="h-4 w-4 ml-2" />

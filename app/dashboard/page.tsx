@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { AnalyticsDashboard } from "@/components/enterprise/analytics-dashboard"
 import { AdvancedDataTable } from "@/components/enterprise/advanced-data-table"
 import { AdvancedFilters } from "@/components/enterprise/advanced-filters"
@@ -80,6 +81,7 @@ import {
 } from "lucide-react"
 
 export default function EnterpriseDashboard() {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTimeframe, setSelectedTimeframe] = useState("30d")
   const [activeView, setActiveView] = useState("overview")
@@ -944,7 +946,6 @@ export default function EnterpriseDashboard() {
                 </Button>
               </div>
             </div>
-            
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
@@ -957,7 +958,7 @@ export default function EnterpriseDashboard() {
                 <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">No Ventures Found</h3>
                 <p className="text-gray-600 mb-4">Get started by adding your first venture to the pipeline</p>
-                <Button onClick={() => window.location.href = '/dashboard/venture-intake'}>
+                <Button onClick={() => router.push('/dashboard/venture-intake')}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add First Venture
                 </Button>
@@ -975,10 +976,10 @@ export default function EnterpriseDashboard() {
                 actions={true}
                 pagination={true}
                 onRowClick={(row: Record<string, any>) => {
-                  window.location.href = `/dashboard/ventures/${row.id}`
+                  router.push(`/dashboard/ventures/${row.id}`)
                 }}
                 onEdit={(row: Record<string, any>) => {
-                  window.location.href = `/dashboard/ventures/${row.id}?edit=true`
+                  router.push(`/dashboard/ventures/${row.id}?edit=true`)
                 }}
                 onDelete={(row: Record<string, any>) => {
                   // Handle delete

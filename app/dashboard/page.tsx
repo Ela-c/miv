@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { useRouter } from "next/navigation"
 import { AnalyticsDashboard } from "@/components/enterprise/analytics-dashboard"
 import { AdvancedDataTable } from "@/components/enterprise/advanced-data-table"
 import { AdvancedFilters } from "@/components/enterprise/advanced-filters"
@@ -74,6 +75,7 @@ import {
 } from "lucide-react"
 
 export default function EnterpriseDashboard() {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTimeframe, setSelectedTimeframe] = useState("30d")
   const [activeView, setActiveView] = useState("overview")
@@ -464,7 +466,7 @@ export default function EnterpriseDashboard() {
               actions={true}
               pagination={true}
               onRowClick={(row: Record<string, any>) => {
-                // Handle row click
+                router.push(`/dashboard/ventures/${row.id}`)
               }}
               onEdit={(row: Record<string, any>) => {
                 // Handle edit

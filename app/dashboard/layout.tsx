@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import Link from 'next/link'
 import { Sidebar } from "@/components/sidebar"
 import { MobileNav } from "@/components/mobile-nav"
 import { Breadcrumb } from "@/components/breadcrumb"
@@ -40,12 +41,12 @@ export default function DashboardLayout({
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Required</h1>
           <p className="text-gray-600 mb-6">Please sign in to access the dashboard.</p>
-          <a 
+          <Link 
             href="/" 
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             Go to Homepage
-          </a>
+          </Link>
         </div>
       </div>
     )

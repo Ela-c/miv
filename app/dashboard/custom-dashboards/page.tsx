@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { 
   BarChart, 
   Plus, 
@@ -32,7 +36,16 @@ import {
   MoreHorizontal,
   Star,
   Clock,
-  CheckCircle
+  CheckCircle,
+  X,
+  Sparkles,
+  BarChart3,
+  Heart,
+  Building2,
+  RefreshCw,
+  Save,
+  Layout,
+  Zap
 } from "lucide-react"
 
 interface Dashboard {
@@ -138,8 +151,198 @@ export default function CustomDashboardsPage() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [selectedView, setSelectedView] = useState("all")
   const [isCreating, setIsCreating] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [selectedDashboard, setSelectedDashboard] = useState<Dashboard | null>(null)
+  const [dashboards, setDashboards] = useState<Dashboard[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [portfolioData, setPortfolioData] = useState<any>(null)
+  
+  // New dashboard form state
+  const [newDashboard, setNewDashboard] = useState({
+    name: "",
+    description: "",
+    category: "Custom",
+    isPublic: false,
+    widgets: []
+  })
 
-  const filteredDashboards = mockDashboards.filter(dashboard => {
+  // Fetch dashboards from database
+  useEffect(() => {
+    fetchDashboards()
+  }, [])
+
+  const fetchDashboards = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      const response = await fetch('/api/custom-dashboards')
+      if (!response.ok) {
+        throw new Error(`Failed to fetch dashboards: ${response.status} ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      setDashboards(data.dashboards || [])
+      
+      console.log(`✅ Successfully loaded ${data.dashboards?.length || 0} custom dashboards`)
+    } catch (err) {
+      console.error('❌ Error fetching dashboards:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      setError(`Failed to load dashboards: ${errorMessage}`)
+      
+      // Fallback to empty array instead of mock data
+      setDashboards([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Fetch portfolio data for widgets
+  useEffect(() => {
+    fetchPortfolioData()
+  }, [])
+
+  const fetchPortfolioData = async () => {
+    try {
+      const response = await fetch('/api/ventures?limit=100')
+      if (response.ok) {
+        const data = await response.json()
+        setPortfolioData(data)
+      }
+    } catch (error) {
+      console.error('Error fetching portfolio data:', error)
+    }
+  }
+
+  const handleCreateDashboard = async () => {
+    if (!newDashboard.name.trim()) return
+
+    setIsLoading(true)
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    const dashboard: Dashboard = {
+      id: `DASH-${Date.now()}`,
+      name: newDashboard.name,
+      description: newDashboard.description,
+      category: newDashboard.category,
+      widgets: 0,
+      lastModified: "Just now",
+      isPublic: newDashboard.isPublic,
+      isFavorite: false,
+      createdBy: "You"
+    }
+
+    setDashboards(prev => [dashboard, ...prev])
+    setIsCreating(false)
+    setNewDashboard({
+      name: "",
+      description: "",
+      category: "Custom",
+      isPublic: false,
+      widgets: []
+    })
+    setIsLoading(false)
+  }
+
+  const handleEditDashboard = (dashboard: Dashboard) => {
+    setSelectedDashboard(dashboard)
+    setNewDashboard({
+      name: dashboard.name,
+      description: dashboard.description,
+      category: dashboard.category,
+      isPublic: dashboard.isPublic,
+      widgets: []
+    })
+    setIsEditing(true)
+  }
+
+  const handleUpdateDashboard = async () => {
+    if (!selectedDashboard || !newDashboard.name.trim()) return
+
+    setIsLoading(true)
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    setDashboards(prev => prev.map(d => 
+      d.id === selectedDashboard.id 
+        ? { ...d, ...newDashboard, lastModified: "Just now" }
+        : d
+    ))
+    
+    setIsEditing(false)
+    setSelectedDashboard(null)
+    setNewDashboard({
+      name: "",
+      description: "",
+      category: "Custom",
+      isPublic: false,
+      widgets: []
+    })
+    setIsLoading(false)
+  }
+
+  const handleDeleteDashboard = async (dashboardId: string) => {
+    if (!confirm("Are you sure you want to delete this dashboard?")) return
+
+    setIsLoading(true)
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    setDashboards(prev => prev.filter(d => d.id !== dashboardId))
+    setIsLoading(false)
+  }
+
+  const handleToggleFavorite = (dashboardId: string) => {
+    setDashboards(prev => prev.map(d => 
+      d.id === dashboardId ? { ...d, isFavorite: !d.isFavorite } : d
+    ))
+  }
+
+  const handleDuplicateDashboard = async (dashboard: Dashboard) => {
+    setIsLoading(true)
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    const duplicatedDashboard: Dashboard = {
+      ...dashboard,
+      id: `DASH-${Date.now()}`,
+      name: `${dashboard.name} (Copy)`,
+      lastModified: "Just now",
+      createdBy: "You"
+    }
+    
+    setDashboards(prev => [duplicatedDashboard, ...prev])
+    setIsLoading(false)
+  }
+
+  const handleUseTemplate = async (templateName: string, widgetCount: number) => {
+    setIsLoading(true)
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    const dashboard: Dashboard = {
+      id: `DASH-${Date.now()}`,
+      name: `My ${templateName}`,
+      description: `Custom ${templateName.toLowerCase()} dashboard created from template`,
+      category: templateName.includes('Portfolio') ? 'Portfolio' : 
+                templateName.includes('Pipeline') ? 'Pipeline' :
+                templateName.includes('GEDSI') ? 'Impact' : 'Custom',
+      widgets: widgetCount,
+      lastModified: "Just now",
+      isPublic: false,
+      isFavorite: true,
+      createdBy: "You"
+    }
+
+    setDashboards(prev => [dashboard, ...prev])
+    setIsLoading(false)
+    
+    // Show success message
+    alert(`${templateName} dashboard created successfully!`)
+  }
+
+  const filteredDashboards = dashboards.filter(dashboard => {
     const matchesSearch = dashboard.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          dashboard.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = selectedCategory === "all" || dashboard.category === selectedCategory
@@ -175,9 +378,9 @@ export default function CustomDashboardsPage() {
             <BarChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockDashboards.length}</div>
+            <div className="text-2xl font-bold">{dashboards.length}</div>
             <p className="text-xs text-muted-foreground">
-              {mockDashboards.filter(d => d.isPublic).length} public, {mockDashboards.filter(d => !d.isPublic).length} private
+              {dashboards.filter(d => d.isPublic).length} public, {dashboards.filter(d => !d.isPublic).length} private
             </p>
           </CardContent>
         </Card>
@@ -188,10 +391,10 @@ export default function CustomDashboardsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockDashboards.reduce((sum, d) => sum + d.widgets, 0)}
+              {dashboards.reduce((sum, d) => sum + d.widgets, 0)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Average {Math.round(mockDashboards.reduce((sum, d) => sum + d.widgets, 0) / mockDashboards.length)} per dashboard
+              Average {dashboards.length > 0 ? Math.round(dashboards.reduce((sum, d) => sum + d.widgets, 0) / dashboards.length) : 0} per dashboard
             </p>
           </CardContent>
         </Card>
@@ -202,10 +405,10 @@ export default function CustomDashboardsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockDashboards.filter(d => d.isFavorite).length}
+              {dashboards.filter(d => d.isFavorite).length}
             </div>
             <p className="text-xs text-muted-foreground">
-              {((mockDashboards.filter(d => d.isFavorite).length / mockDashboards.length) * 100).toFixed(1)}% of total
+              {dashboards.length > 0 ? ((dashboards.filter(d => d.isFavorite).length / dashboards.length) * 100).toFixed(1) : 0}% of total
             </p>
           </CardContent>
         </Card>
@@ -216,7 +419,7 @@ export default function CustomDashboardsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockDashboards.filter(d => d.lastModified.includes("hour") || d.lastModified.includes("day")).length}
+              {dashboards.filter(d => d.lastModified.includes("hour") || d.lastModified.includes("day") || d.lastModified.includes("Just now")).length}
             </div>
             <p className="text-xs text-muted-foreground">
               In the last 24 hours
@@ -309,9 +512,38 @@ export default function CustomDashboardsPage() {
                       </CardDescription>
                     </div>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleToggleFavorite(dashboard.id)
+                          }}
+                        >
+                          <Star className={`h-4 w-4 ${dashboard.isFavorite ? 'text-yellow-500 fill-current' : ''}`} />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDuplicateDashboard(dashboard)
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteDashboard(dashboard.id)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
@@ -335,15 +567,29 @@ export default function CustomDashboardsPage() {
                     </div>
                     
                     <div className="flex items-center gap-2 pt-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => alert(`Opening dashboard: ${dashboard.name}`)}
+                      >
                         <Eye className="mr-2 h-4 w-4" />
                         View
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleEditDashboard(dashboard)}
+                      >
                         <Edit className="mr-2 h-4 w-4" />
                         Edit
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => alert(`Sharing options for: ${dashboard.name}`)}
+                      >
                         <Share2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -377,7 +623,7 @@ export default function CustomDashboardsPage() {
                     </p>
                     <div className="flex items-center justify-between">
                       <Badge variant="outline" className="text-xs">8 widgets</Badge>
-                      <Button size="sm">Use Template</Button>
+                      <Button size="sm" onClick={() => handleUseTemplate("Pipeline Overview", 8)}>Use Template</Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -395,7 +641,7 @@ export default function CustomDashboardsPage() {
                     </p>
                     <div className="flex items-center justify-between">
                       <Badge variant="outline" className="text-xs">12 widgets</Badge>
-                      <Button size="sm">Use Template</Button>
+                      <Button size="sm" onClick={() => handleUseTemplate("Portfolio Performance", 12)}>Use Template</Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -413,7 +659,7 @@ export default function CustomDashboardsPage() {
                     </p>
                     <div className="flex items-center justify-between">
                       <Badge variant="outline" className="text-xs">6 widgets</Badge>
-                      <Button size="sm">Use Template</Button>
+                      <Button size="sm" onClick={() => handleUseTemplate("GEDSI Impact", 6)}>Use Template</Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -431,7 +677,7 @@ export default function CustomDashboardsPage() {
                     </p>
                     <div className="flex items-center justify-between">
                       <Badge variant="outline" className="text-xs">10 widgets</Badge>
-                      <Button size="sm">Use Template</Button>
+                      <Button size="sm" onClick={() => handleUseTemplate("Due Diligence", 10)}>Use Template</Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -449,7 +695,7 @@ export default function CustomDashboardsPage() {
                     </p>
                     <div className="flex items-center justify-between">
                       <Badge variant="outline" className="text-xs">9 widgets</Badge>
-                      <Button size="sm">Use Template</Button>
+                      <Button size="sm" onClick={() => handleUseTemplate("Financial Overview", 9)}>Use Template</Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -467,7 +713,7 @@ export default function CustomDashboardsPage() {
                     </p>
                     <div className="flex items-center justify-between">
                       <Badge variant="outline" className="text-xs">7 widgets</Badge>
-                      <Button size="sm">Use Template</Button>
+                      <Button size="sm" onClick={() => handleUseTemplate("Team Performance", 7)}>Use Template</Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -509,6 +755,266 @@ export default function CustomDashboardsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Create Dashboard Dialog */}
+      <Dialog open={isCreating} onOpenChange={setIsCreating}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Create New Dashboard
+            </DialogTitle>
+            <DialogDescription>
+              Create a custom dashboard to track your key metrics and KPIs
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="dashboard-name">Dashboard Name</Label>
+              <Input
+                id="dashboard-name"
+                placeholder="Enter dashboard name..."
+                value={newDashboard.name}
+                onChange={(e) => setNewDashboard(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="dashboard-description">Description</Label>
+              <Textarea
+                id="dashboard-description"
+                placeholder="Describe what this dashboard will track..."
+                value={newDashboard.description}
+                onChange={(e) => setNewDashboard(prev => ({ ...prev, description: e.target.value }))}
+                rows={3}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="dashboard-category">Category</Label>
+                <Select
+                  value={newDashboard.category}
+                  onValueChange={(value) => setNewDashboard(prev => ({ ...prev, category: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(category => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="dashboard-public">Visibility</Label>
+                <div className="flex items-center space-x-2 h-10">
+                  <Switch
+                    id="dashboard-public"
+                    checked={newDashboard.isPublic}
+                    onCheckedChange={(checked) => setNewDashboard(prev => ({ ...prev, isPublic: checked }))}
+                  />
+                  <Label htmlFor="dashboard-public" className="text-sm">
+                    {newDashboard.isPublic ? "Public" : "Private"}
+                  </Label>
+                </div>
+              </div>
+            </div>
+            
+            {/* Quick Start Options */}
+            <div className="space-y-3">
+              <Label>Quick Start Options</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Card className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => setNewDashboard(prev => ({ ...prev, category: "Portfolio" }))}>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <TrendingUp className="h-8 w-8 text-green-600" />
+                    <div>
+                      <div className="font-medium text-sm">Portfolio Focus</div>
+                      <div className="text-xs text-muted-foreground">Track investments & returns</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => setNewDashboard(prev => ({ ...prev, category: "Impact" }))}>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Heart className="h-8 w-8 text-pink-600" />
+                    <div>
+                      <div className="font-medium text-sm">Impact Focus</div>
+                      <div className="text-xs text-muted-foreground">Track GEDSI & social impact</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => setNewDashboard(prev => ({ ...prev, category: "Pipeline" }))}>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <BarChart3 className="h-8 w-8 text-blue-600" />
+                    <div>
+                      <div className="font-medium text-sm">Pipeline Focus</div>
+                      <div className="text-xs text-muted-foreground">Track deal flow & stages</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => setNewDashboard(prev => ({ ...prev, category: "Operations" }))}>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Activity className="h-8 w-8 text-orange-600" />
+                    <div>
+                      <div className="font-medium text-sm">Operations Focus</div>
+                      <div className="text-xs text-muted-foreground">Track team & processes</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Sparkles className="h-4 w-4" />
+              You can add widgets after creating the dashboard
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setIsCreating(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleCreateDashboard} 
+                disabled={!newDashboard.name.trim() || isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Create Dashboard
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dashboard Dialog */}
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit Dashboard
+            </DialogTitle>
+            <DialogDescription>
+              Update your dashboard settings and configuration
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-dashboard-name">Dashboard Name</Label>
+              <Input
+                id="edit-dashboard-name"
+                placeholder="Enter dashboard name..."
+                value={newDashboard.name}
+                onChange={(e) => setNewDashboard(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-dashboard-description">Description</Label>
+              <Textarea
+                id="edit-dashboard-description"
+                placeholder="Describe what this dashboard tracks..."
+                value={newDashboard.description}
+                onChange={(e) => setNewDashboard(prev => ({ ...prev, description: e.target.value }))}
+                rows={3}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-dashboard-category">Category</Label>
+                <Select
+                  value={newDashboard.category}
+                  onValueChange={(value) => setNewDashboard(prev => ({ ...prev, category: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(category => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-dashboard-public">Visibility</Label>
+                <div className="flex items-center space-x-2 h-10">
+                  <Switch
+                    id="edit-dashboard-public"
+                    checked={newDashboard.isPublic}
+                    onCheckedChange={(checked) => setNewDashboard(prev => ({ ...prev, isPublic: checked }))}
+                  />
+                  <Label htmlFor="edit-dashboard-public" className="text-sm">
+                    {newDashboard.isPublic ? "Public" : "Private"}
+                  </Label>
+                </div>
+              </div>
+            </div>
+            
+            {selectedDashboard && (
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Layout className="h-4 w-4 text-blue-600" />
+                  <span className="font-medium text-sm">Current Dashboard Info</span>
+                </div>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <div>Widgets: {selectedDashboard.widgets}</div>
+                  <div>Created: {selectedDashboard.lastModified}</div>
+                  <div>Created by: {selectedDashboard.createdBy}</div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => alert("Widget management coming soon!")}>
+                <Zap className="h-4 w-4 mr-1" />
+                Manage Widgets
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setIsEditing(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleUpdateDashboard} 
+                disabled={!newDashboard.name.trim() || isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Update Dashboard
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

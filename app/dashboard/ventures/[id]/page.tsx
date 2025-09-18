@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { calculateGEDSIScore } from "@/lib/gedsi-utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -44,14 +45,22 @@ interface Venture {
   location: string
   stage: string
   status: string
-  fundingAmount: number
-  fundingStage: string
+  fundingRaised: number
+  revenue: number
+  lastValuation: number
   teamSize: number
-  foundedYear: number
+  foundingYear: number
   website: string
   contactEmail: string
   contactPhone: string
-  gedsiScore: number
+  gedsiMetricsSummary: {
+    womenLeadership: number
+    womenEmployees: number
+    disabilityInclusion: number
+    underservedCommunities: number
+    genderPayGap: number
+    accessibilityScore: number
+  }
   gedsiMetrics: Array<{
     id: string
     metricCode: string
@@ -90,9 +99,19 @@ interface Venture {
   assignedTo: {
     name: string
     email: string
-  }
+  } | null
   createdAt: string
   updatedAt: string
+  intakeDate?: string
+  screeningDate?: string
+  dueDiligenceStart?: string
+  dueDiligenceEnd?: string
+  investmentReadyAt?: string
+  fundedAt?: string
+  nextReviewAt?: string
+  capitalActivities?: Array<{ id: string; type: string; amount: number; currency: string; status: string; date?: string; investorName?: string }>
+  financials?: Record<string, any>
+  aiAnalysis?: Record<string, any>
 }
 
 export default function VentureDetailPage() {
@@ -116,7 +135,94 @@ export default function VentureDetailPage() {
         throw new Error('Failed to fetch venture data')
       }
       const data = await response.json()
-      setVenture(data)
+
+      // Normalize API response to match the Venture interface and guard against nulls
+      const normalized: Venture = {
+        id: data.id,
+        name: data.name ?? 'Unnamed Venture',
+        description: data.description ?? '',
+        sector: data.sector ?? 'UNKNOWN',
+        location: data.location ?? 'Unknown',
+        stage: data.stage ?? 'INTAKE',
+        status: data.status ?? 'ACTIVE',
+        fundingRaised: Number(data.fundingRaised ?? 0),
+        revenue: Number(data.revenue ?? 0),
+        lastValuation: Number(data.lastValuation ?? 0),
+        teamSize: Number(data.teamSize ?? 0),
+        foundingYear: Number(data.foundingYear ?? data.foundedYear ?? new Date().getFullYear()),
+        website: data.website ?? '',
+        contactEmail: data.contactEmail ?? '',
+        contactPhone: data.contactPhone ?? '',
+        gedsiMetricsSummary: data.gedsiMetricsSummary ?? {
+          womenLeadership: 0,
+          womenEmployees: 0,
+          disabilityInclusion: 0,
+          underservedCommunities: 0,
+          genderPayGap: 0,
+          accessibilityScore: 0,
+        },
+        gedsiMetrics: Array.isArray(data.gedsiMetrics)
+          ? data.gedsiMetrics.map((m: any) => ({
+              id: m.id,
+              metricCode: m.metricCode ?? '',
+              metricName: m.metricName ?? '',
+              category: m.category ?? 'GENDER',
+              targetValue: Number(m.targetValue ?? 0),
+              currentValue: Number(m.currentValue ?? 0),
+              unit: m.unit ?? '',
+              status: m.status ?? 'NOT_STARTED',
+              verificationDate: m.verificationDate ?? new Date().toISOString(),
+              notes: m.notes ?? '',
+            }))
+          : [],
+        activities: Array.isArray(data.activities)
+          ? data.activities.map((a: any) => ({
+              id: a.id,
+              type: a.type ?? 'MILESTONE',
+              description: a.description ?? '',
+              date: a.date ?? a.createdAt ?? new Date().toISOString(),
+              userId: a.userId ?? '',
+              user: {
+                name: a.user?.name ?? 'System',
+                email: a.user?.email ?? 'system@local',
+              },
+            }))
+          : [],
+        documents: Array.isArray(data.documents)
+          ? data.documents.map((d: any) => ({
+              id: d.id,
+              name: d.name ?? 'Document',
+              type: d.type ?? 'FILE',
+              url: d.url ?? '#',
+              uploadedAt: d.uploadedAt ?? new Date().toISOString(),
+              size: d.size ?? '0 KB',
+            }))
+          : [],
+        createdBy: {
+          name: data.createdBy?.name ?? 'Unknown',
+          email: data.createdBy?.email ?? '',
+        },
+        assignedTo: data.assignedTo
+          ? {
+              name: data.assignedTo?.name ?? 'Unknown',
+              email: data.assignedTo?.email ?? '',
+            }
+          : null,
+        createdAt: data.createdAt ?? new Date().toISOString(),
+        updatedAt: data.updatedAt ?? new Date().toISOString(),
+        intakeDate: data.intakeDate ?? null,
+        screeningDate: data.screeningDate ?? null,
+        dueDiligenceStart: data.dueDiligenceStart ?? null,
+        dueDiligenceEnd: data.dueDiligenceEnd ?? null,
+        investmentReadyAt: data.investmentReadyAt ?? null,
+        fundedAt: data.fundedAt ?? null,
+        nextReviewAt: data.nextReviewAt ?? null,
+        capitalActivities: Array.isArray(data.capitalActivities) ? data.capitalActivities : [],
+        financials: data.financials ?? undefined,
+        aiAnalysis: data.aiAnalysis ?? undefined,
+      }
+
+      setVenture(normalized)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -181,6 +287,11 @@ export default function VentureDetailPage() {
       month: 'long',
       day: 'numeric'
     })
+  }
+
+  // Use shared GEDSI calculation function
+  const getVentureGEDSIScore = (venture: Venture) => {
+    return calculateGEDSIScore(venture);
   }
 
   if (loading) {
@@ -288,8 +399,8 @@ export default function VentureDetailPage() {
                     <div className="flex items-center space-x-2">
                       <DollarSign className="h-5 w-5 text-green-500" />
                       <div>
-                        <p className="text-sm text-gray-600">Funding</p>
-                        <p className="text-lg font-semibold">{formatCurrency(venture.fundingAmount)}</p>
+                        <p className="text-sm text-gray-600">Funding Raised</p>
+                        <p className="text-lg font-semibold">{formatCurrency(venture.fundingRaised)}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -311,7 +422,7 @@ export default function VentureDetailPage() {
                       <Target className="h-5 w-5 text-purple-500" />
                       <div>
                         <p className="text-sm text-gray-600">GEDSI Score</p>
-                        <p className="text-lg font-semibold">{venture.gedsiScore}%</p>
+                        <p className="text-lg font-semibold">{getVentureGEDSIScore(venture)}%</p>
                       </div>
                     </div>
                   </CardContent>
@@ -322,7 +433,7 @@ export default function VentureDetailPage() {
                       <Calendar className="h-5 w-5 text-orange-500" />
                       <div>
                         <p className="text-sm text-gray-600">Founded</p>
-                        <p className="text-lg font-semibold">{venture.foundedYear}</p>
+                        <p className="text-lg font-semibold">{venture.foundingYear}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -367,6 +478,124 @@ export default function VentureDetailPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Capital Activities */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Capital Activities</CardTitle>
+                  <CardDescription>Financing events and status</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {(venture.capitalActivities || []).map((c) => (
+                      <div key={c.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <DollarSign className="h-4 w-4 text-emerald-600" />
+                          <div>
+                            <p className="text-sm font-medium">{c.type} • {c.status}</p>
+                            <p className="text-xs text-gray-600">{c.investorName || 'Investor'} {c.date ? `• ${formatDate(c.date)}` : ''}</p>
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: c.currency || 'USD', maximumFractionDigits: 0 }).format(c.amount || 0)}</div>
+                      </div>
+                    ))}
+                    {(!venture.capitalActivities || venture.capitalActivities.length === 0) && (
+                      <p className="text-sm text-gray-500">No capital activities yet.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* AI Insights */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>AI Insights</CardTitle>
+                  <CardDescription>Automated analysis highlights</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    try {
+                      const aiData = typeof venture.aiAnalysis === 'string' 
+                        ? JSON.parse(venture.aiAnalysis) 
+                        : venture.aiAnalysis;
+                      
+                      if (!aiData) {
+                        return <p className="text-sm text-gray-500">No AI analysis available.</p>;
+                      }
+
+                      return (
+                        <div className="space-y-4">
+                          {/* Key Scores */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="text-center p-3 bg-blue-50 rounded-lg">
+                              <div className="text-lg font-bold text-blue-600">{getVentureGEDSIScore(venture) || 'N/A'}%</div>
+                              <div className="text-xs text-blue-800">GEDSI Score</div>
+                            </div>
+                            <div className="text-center p-3 bg-green-50 rounded-lg">
+                              <div className="text-lg font-bold text-green-600">{aiData.impactScore || 'N/A'}%</div>
+                              <div className="text-xs text-green-800">Impact Score</div>
+                            </div>
+                            <div className="text-center p-3 bg-purple-50 rounded-lg">
+                              <div className="text-lg font-bold text-purple-600">{aiData.readinessScore || 'N/A'}%</div>
+                              <div className="text-xs text-purple-800">Readiness</div>
+                            </div>
+                            <div className="text-center p-3 bg-orange-50 rounded-lg">
+                              <div className={`text-lg font-bold ${
+                                aiData.riskLevel === 'low' ? 'text-green-600' :
+                                aiData.riskLevel === 'medium' ? 'text-orange-600' : 'text-red-600'
+                              }`}>
+                                {(aiData.riskLevel || 'Unknown').toUpperCase()}
+                              </div>
+                              <div className="text-xs text-gray-600">Risk Level</div>
+                            </div>
+                          </div>
+
+                          {/* AI Recommendation */}
+                          {aiData.recommendation && (
+                            <div className="p-4 bg-blue-50 rounded-lg">
+                              <h4 className="font-semibold text-blue-900 mb-2">AI Recommendation</h4>
+                              <p className="text-sm text-blue-800">{aiData.recommendation}</p>
+                            </div>
+                          )}
+
+                          {/* Key Strengths */}
+                          {aiData.keyStrengths && Array.isArray(aiData.keyStrengths) && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Key Strengths</h4>
+                              <ul className="space-y-1">
+                                {aiData.keyStrengths.slice(0, 3).map((strength: string, index: number) => (
+                                  <li key={index} className="text-sm text-gray-700 flex items-start">
+                                    <span className="text-green-500 mr-2">•</span>
+                                    {strength}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Areas for Improvement */}
+                          {aiData.areasForImprovement && Array.isArray(aiData.areasForImprovement) && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Areas for Improvement</h4>
+                              <ul className="space-y-1">
+                                {aiData.areasForImprovement.slice(0, 3).map((area: string, index: number) => (
+                                  <li key={index} className="text-sm text-gray-700 flex items-start">
+                                    <span className="text-orange-500 mr-2">•</span>
+                                    {area}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    } catch (error) {
+                      console.error('Error parsing AI analysis:', error);
+                      return <p className="text-sm text-red-500">Error loading AI analysis data.</p>;
+                    }
+                  })()}
+                </CardContent>
+              </Card>
             </div>
 
             {/* GEDSI Progress */}
@@ -381,9 +610,9 @@ export default function VentureDetailPage() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium">Overall Score</span>
-                        <span className="text-sm text-gray-600">{venture.gedsiScore}%</span>
+                        <span className="text-sm text-gray-600">{getVentureGEDSIScore(venture)}%</span>
                       </div>
-                      <Progress value={venture.gedsiScore} className="h-2" />
+                      <Progress value={getVentureGEDSIScore(venture)} className="h-2" />
                     </div>
                     <div className="space-y-2">
                       {venture.gedsiMetrics.slice(0, 3).map((metric) => (
@@ -416,6 +645,60 @@ export default function VentureDetailPage() {
                       </div>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Financial Snapshot */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Financial Snapshot</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    try {
+                      const financialData = typeof venture.financials === 'string' 
+                        ? JSON.parse(venture.financials) 
+                        : venture.financials;
+                      
+                      if (!financialData) {
+                        return <p className="text-sm text-gray-500">No financial data available.</p>;
+                      }
+
+                      const formatFinancialValue = (key: string, value: any) => {
+                        if (key.toLowerCase().includes('revenue') || key.toLowerCase().includes('mrr')) {
+                          return `$${Number(value).toLocaleString()}`;
+                        }
+                        if (key.toLowerCase().includes('margin') || key.toLowerCase().includes('rate')) {
+                          return `${value}%`;
+                        }
+                        if (key.toLowerCase().includes('runway')) {
+                          return `${value} months`;
+                        }
+                        return String(value);
+                      };
+
+                      const formatLabel = (key: string) => {
+                        return key
+                          .replace(/([A-Z])/g, ' $1')
+                          .replace(/^./, str => str.toUpperCase())
+                          .trim();
+                      };
+
+                      return (
+                        <div className="space-y-3">
+                          {Object.entries(financialData).map(([k, v]) => (
+                            <div key={k} className="flex justify-between items-center">
+                              <span className="text-gray-600 text-sm">{formatLabel(k)}</span>
+                              <span className="font-medium text-sm">{formatFinancialValue(k, v)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    } catch (error) {
+                      console.error('Error parsing financial data:', error);
+                      return <p className="text-sm text-red-500">Error loading financial data.</p>;
+                    }
+                  })()}
                 </CardContent>
               </Card>
             </div>
@@ -552,15 +835,24 @@ export default function VentureDetailPage() {
                 <CardTitle>Assigned To</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarFallback>{venture.assignedTo.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium text-gray-900">{venture.assignedTo.name}</p>
-                    <p className="text-sm text-gray-600">{venture.assignedTo.email}</p>
+                {venture.assignedTo ? (
+                  <div className="flex items-center space-x-3">
+                    <Avatar>
+                      <AvatarFallback>{venture.assignedTo.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-gray-900">{venture.assignedTo.name}</p>
+                      <p className="text-sm text-gray-600">{venture.assignedTo.email}</p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500 text-sm">Not assigned</p>
+                    <Button variant="outline" size="sm" className="mt-2">
+                      Assign User
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -579,9 +871,51 @@ export default function VentureDetailPage() {
                   <span className="text-gray-600">Last Updated:</span>
                   <p className="font-medium">{formatDate(venture.updatedAt)}</p>
                 </div>
+                {venture.intakeDate && (
+                  <div>
+                    <span className="text-gray-600">Intake Date:</span>
+                    <p className="font-medium">{formatDate(venture.intakeDate)}</p>
+                  </div>
+                )}
+                {venture.screeningDate && (
+                  <div>
+                    <span className="text-gray-600">Screening Date:</span>
+                    <p className="font-medium">{formatDate(venture.screeningDate)}</p>
+                  </div>
+                )}
+                {venture.dueDiligenceStart && (
+                  <div>
+                    <span className="text-gray-600">Due Diligence Start:</span>
+                    <p className="font-medium">{formatDate(venture.dueDiligenceStart)}</p>
+                  </div>
+                )}
+                {venture.dueDiligenceEnd && (
+                  <div>
+                    <span className="text-gray-600">Due Diligence End:</span>
+                    <p className="font-medium">{formatDate(venture.dueDiligenceEnd)}</p>
+                  </div>
+                )}
+                {venture.investmentReadyAt && (
+                  <div>
+                    <span className="text-gray-600">Investment Ready:</span>
+                    <p className="font-medium">{formatDate(venture.investmentReadyAt)}</p>
+                  </div>
+                )}
+                {venture.fundedAt && (
+                  <div>
+                    <span className="text-gray-600">Funded At:</span>
+                    <p className="font-medium">{formatDate(venture.fundedAt)}</p>
+                  </div>
+                )}
+                {venture.nextReviewAt && (
+                  <div>
+                    <span className="text-gray-600">Next Review:</span>
+                    <p className="font-medium">{formatDate(venture.nextReviewAt)}</p>
+                  </div>
+                )}
                 <div>
                   <span className="text-gray-600">Funding Stage:</span>
-                  <p className="font-medium">{venture.fundingStage}</p>
+                  <p className="font-medium">{venture.stage}</p>
                 </div>
                 <div>
                   <span className="text-gray-600">Team Size:</span>

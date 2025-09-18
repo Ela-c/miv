@@ -1,3 +1,8 @@
+
+
+v 
+
+
 # MIV Platform - Tech Stack Market Comparison
 
 <div align="center">

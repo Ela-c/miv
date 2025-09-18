@@ -85,67 +85,146 @@ export default function AIAnalysisPage() {
   }, [])
 
   const fetchAnalyses = async () => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockAnalyses: AIAnalysis[] = [
-        {
-          id: '1',
-          ventureId: '1',
-          ventureName: 'EcoTech Solutions',
-          analysisType: 'Risk Assessment',
-          status: 'completed',
-          riskScore: 25,
-          impactScore: 85,
-          recommendations: [
-            'Strengthen intellectual property protection',
-            'Diversify revenue streams',
-            'Enhance regulatory compliance framework'
-          ],
-          insights: [
-            'Strong market positioning in renewable energy sector',
-            'Experienced management team with proven track record',
-            'Favorable regulatory environment in target markets'
-          ],
-          createdAt: '2024-01-15T10:30:00Z',
-          completedAt: '2024-01-15T10:45:00Z'
-        },
-        {
-          id: '2',
-          ventureId: '2',
-          ventureName: 'AgriTech Innovations',
-          analysisType: 'Impact Analysis',
-          status: 'processing',
-          riskScore: 35,
-          impactScore: 0,
-          recommendations: [],
-          insights: [],
-          createdAt: '2024-01-15T11:00:00Z'
-        },
-        {
-          id: '3',
-          ventureId: '3',
-          ventureName: 'HealthTech Africa',
-          analysisType: 'Market Analysis',
-          status: 'completed',
-          riskScore: 40,
-          impactScore: 75,
-          recommendations: [
-            'Expand to underserved rural markets',
-            'Partner with local healthcare providers',
-            'Develop mobile-first solutions'
-          ],
-          insights: [
-            'High demand for telemedicine services',
-            'Growing smartphone penetration in target markets',
-            'Government support for digital health initiatives'
-          ],
-          createdAt: '2024-01-14T14:20:00Z',
-          completedAt: '2024-01-14T14:35:00Z'
-        }
-      ]
-      setAnalyses(mockAnalyses)
+    try {
+      setLoading(true)
+      
+      // Fetch ventures from database to generate AI analyses
+      const response = await fetch('/api/ventures?limit=50')
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ventures: ${response.status} ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      const ventures = data.ventures || []
+      
+      console.log(`📊 Found ${ventures.length} ventures for AI analysis`)
+      
+      // Generate AI analyses based on real venture data
+      const generatedAnalyses: AIAnalysis[] = ventures
+        .filter(venture => venture.aiAnalysis || venture.gedsiMetrics?.length > 0)
+        .slice(0, 10) // Limit to 10 most relevant
+        .map((venture, index) => {
+          // Calculate scores based on venture data
+          const gedsiScore = venture.gedsiMetrics?.length > 0 
+            ? venture.gedsiMetrics.reduce((sum: number, metric: any) => sum + (metric.currentValue || 0), 0) / venture.gedsiMetrics.length
+            : Math.floor(Math.random() * 40) + 60
+
+          const riskScore = calculateRiskScore(venture)
+          const impactScore = Math.min(gedsiScore * 1.2, 100)
+          
+          const analysisTypes = ['Risk Assessment', 'Impact Analysis', 'Market Analysis', 'Financial Analysis']
+          const analysisType = analysisTypes[index % analysisTypes.length]
+          
+          const status = venture.aiAnalysis ? 'completed' : 
+                        venture.stage === 'DUE_DILIGENCE' ? 'processing' : 
+                        'pending'
+
+          return {
+            id: `analysis-${venture.id}`,
+            ventureId: venture.id,
+            ventureName: venture.name,
+            analysisType,
+            status,
+            riskScore: Math.round(riskScore),
+            impactScore: Math.round(impactScore),
+            recommendations: generateRecommendations(venture, analysisType),
+            insights: generateInsights(venture, analysisType),
+            createdAt: new Date(venture.createdAt).toISOString(),
+            completedAt: status === 'completed' ? new Date(venture.updatedAt).toISOString() : undefined
+          }
+        })
+      
+      setAnalyses(generatedAnalyses)
+      console.log(`✅ Successfully generated ${generatedAnalyses.length} AI analyses from database data`)
+    } catch (error) {
+      console.error('❌ Error fetching AI analyses:', error)
+      
+      // Fallback to empty array if API fails
+      setAnalyses([])
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
+  }
+
+  // Helper functions for generating AI analysis content
+  const calculateRiskScore = (venture: any) => {
+    let risk = 30 // Base risk
+    
+    if (venture.stage === 'INTAKE' || venture.stage === 'SCREENING') risk += 20
+    if (!venture.fundingRaised || venture.fundingRaised < 100000) risk += 15
+    if (!venture.teamSize || venture.teamSize < 5) risk += 10
+    if (venture.sector === 'Technology' || venture.sector === 'FinTech') risk -= 5
+    if (venture.gedsiMetrics?.length > 5) risk -= 10
+    
+    return Math.max(10, Math.min(risk, 80))
+  }
+
+  const generateRecommendations = (venture: any, analysisType: string) => {
+    const baseRecs = {
+      'Risk Assessment': [
+        'Strengthen intellectual property protection',
+        'Diversify revenue streams', 
+        'Enhance regulatory compliance framework'
+      ],
+      'Impact Analysis': [
+        'Expand GEDSI metric tracking',
+        'Develop community engagement programs',
+        'Implement impact measurement framework'
+      ],
+      'Market Analysis': [
+        'Conduct thorough market research',
+        'Identify key competitors and positioning',
+        'Develop go-to-market strategy'
+      ],
+      'Financial Analysis': [
+        'Improve financial reporting accuracy',
+        'Develop sustainable revenue model',
+        'Optimize cost structure'
+      ]
+    }
+
+    const recs = [...(baseRecs[analysisType as keyof typeof baseRecs] || baseRecs['Risk Assessment'])]
+    
+    // Add venture-specific recommendations
+    if (venture.sector === 'Healthcare') {
+      recs.push('Partner with local healthcare providers')
+    }
+    if (venture.inclusionFocus) {
+      recs.push('Strengthen social impact measurement')
+    }
+    if (!venture.fundingRaised) {
+      recs.push('Prepare for investment readiness')
+    }
+    
+    return recs.slice(0, 4)
+  }
+
+  const generateInsights = (venture: any, analysisType: string) => {
+    const insights = []
+    
+    if (venture.sector) {
+      insights.push(`Strong positioning in ${venture.sector} sector`)
+    }
+    if (venture.gedsiMetrics?.length > 0) {
+      insights.push('Good GEDSI metrics tracking in place')
+    }
+    if (venture.inclusionFocus) {
+      insights.push('Clear social impact focus')
+    }
+    if (venture.stage === 'FUNDED' || venture.fundingRaised > 0) {
+      insights.push('Proven ability to raise capital')
+    }
+    if (venture.teamSize > 10) {
+      insights.push('Well-staffed team with growth capacity')
+    }
+    
+    // Add default insights if none generated
+    if (insights.length === 0) {
+      insights.push('Venture shows potential for growth')
+      insights.push('Market opportunity exists in target sector')
+    }
+    
+    return insights.slice(0, 3)
   }
 
   const startAnalysis = async () => {

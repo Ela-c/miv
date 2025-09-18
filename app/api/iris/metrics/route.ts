@@ -34,7 +34,7 @@ async function ensureCatalogSeeded() {
       name: m.name,
       description: m.description || null,
       unit: m.unit || null,
-      categories: Array.isArray(m.categories) ? m.categories : undefined,
+      category: Array.isArray(m.categories) ? m.categories[0] : undefined,
       tags: Array.isArray(m.tags) ? m.tags : undefined,
     }))
   if (items.length === 0) return
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const q = (searchParams.get('q') || '').trim()
     const code = (searchParams.get('code') || '').trim()
-    const limit = Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '20')))
+    const limit = Math.max(1, Math.min(200, parseInt(searchParams.get('limit') || '20')))
 
     if (code) {
       const item = await prisma.iRISMetricCatalog.findFirst({ where: { code } })

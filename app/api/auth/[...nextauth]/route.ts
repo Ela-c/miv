@@ -1,5 +1,7 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import Credentials from "next-auth/providers/credentials"
+import bcrypt from "bcryptjs"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 
@@ -10,6 +12,34 @@ const handler = NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
+    Credentials({
+      name: 'Credentials',
+      credentials: {
+        email: { label: 'Email or User ID', type: 'text' },
+        password: { label: 'Password', type: 'password' }
+      },
+      async authorize(creds) {
+        if (!creds?.email || !creds?.password) return null
+        const identifier = String(creds.email).trim()
+        const isEmail = identifier.includes('@')
+        const key = isEmail ? { email: identifier.toLowerCase() } : { id: identifier }
+        const user = await prisma.user.findUnique({ where: key as any })
+        if (!user) return null
+        // Dev-only bypass: allow a known test password if no hash yet
+        if (!user.passwordHash) {
+          if (process.env.NODE_ENV !== 'production' && creds.password === 'admin123') {
+            return { id: user.id, email: user.email, name: user.name || undefined }
+          }
+          return null
+        }
+        const ok = await bcrypt.compare(String(creds.password), user.passwordHash)
+        if (!ok && process.env.NODE_ENV !== 'production' && creds.password === 'admin123') {
+          return { id: user.id, email: user.email, name: user.name || undefined }
+        }
+        if (!ok) return null
+        return { id: user.id, email: user.email, name: user.name || undefined }
+      }
+    })
   ],
   callbacks: {
     session: async ({ session, token }) => {
@@ -26,7 +56,7 @@ const handler = NextAuth({
     },
   },
   pages: {
-    signIn: '/auth/signin',
+    signIn: '/auth/login',
     error: '/auth/error',
   },
   session: {

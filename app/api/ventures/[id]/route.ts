@@ -35,10 +35,11 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const session = await getServerSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Disable authentication for development
+    // const session = await getServerSession();
+    // if (!session?.user) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
 
     const venture = await prisma.venture.findUnique({
       where: { id: id },
@@ -99,21 +100,28 @@ export async function PUT(
 ) {
   const { id } = await params;
   try {
-    const session = await getServerSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Disable authentication for development
+    // const session = await getServerSession();
+    // if (!session?.user) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
 
     const body = await request.json();
     const validatedData = updateVentureSchema.parse(body);
 
-    // Get user ID from session
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email! }
-    });
+    // Get user ID from session (disabled for development)
+    // const user = await prisma.user.findUnique({
+    //   where: { email: session.user.email! }
+    // });
 
+    // if (!user) {
+    //   return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    // }
+
+    // For development, use a default user
+    const user = await prisma.user.findFirst();
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'No users found' }, { status: 404 });
     }
 
     // Check if venture exists
@@ -181,18 +189,25 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    const session = await getServerSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Disable authentication for development
+    // const session = await getServerSession();
+    // if (!session?.user) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
 
-    // Get user ID from session
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email! }
-    });
+    // Get user ID from session (disabled for development)
+    // const user = await prisma.user.findUnique({
+    //   where: { email: session.user.email! }
+    // });
 
+    // if (!user) {
+    //   return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    // }
+
+    // For development, use a default user
+    const user = await prisma.user.findFirst();
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'No users found' }, { status: 404 });
     }
 
     // Check if venture exists

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -97,16 +97,60 @@ export default function SystemSettings() {
     useState<HistoricalPerformance[]>(initialHistoricalPerformance)
   const [profileSaveStatus, setProfileSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [passwordSaveStatus, setPasswordSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchUserData()
+  }, [])
+
+  const fetchUserData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Fetch current user data
+      const response = await fetch('/api/users/me')
+      if (response.ok) {
+        const userData = await response.json()
+        setUserProfile({
+          name: userData.name || 'Unknown User',
+          email: userData.email || 'unknown@example.com',
+          twoFactorEnabled: userData.twoFactorEnabled || false
+        })
+      }
+    } catch (err) {
+      console.error('Error fetching user data:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load user data')
+    } finally {
+      setLoading(false)
+    }
+  }
   const [notificationSaveStatus, setNotificationSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
 
   const handleProfileUpdate = async () => {
     setProfileSaveStatus("saving")
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    // In a real app, send userProfile to backend
-    // Update profile functionality would be implemented here
-    setProfileSaveStatus("saved")
-    setTimeout(() => setProfileSaveStatus("idle"), 2000)
+    try {
+      const response = await fetch('/api/users/me', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: userProfile.name,
+          email: userProfile.email
+        })
+      })
+
+      if (response.ok) {
+        setProfileSaveStatus("saved")
+        setTimeout(() => setProfileSaveStatus("idle"), 2000)
+      } else {
+        throw new Error('Failed to update profile')
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      setProfileSaveStatus("error")
+      setTimeout(() => setProfileSaveStatus("idle"), 2000)
+    }
   }
 
   const handlePasswordChange = async () => {
@@ -147,6 +191,31 @@ export default function SystemSettings() {
       ...prev.slice(1),
       { month: newMonth, cpu: systemPerformance.cpuUsage, memory: systemPerformance.memoryUsage },
     ])
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 text-gray-400 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading settings...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex items-center">
+          <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+          <div>
+            <h3 className="text-sm font-medium text-red-800">Error Loading Settings</h3>
+            <p className="text-sm text-red-600 mt-1">{error}</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

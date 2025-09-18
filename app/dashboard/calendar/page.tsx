@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -187,6 +187,10 @@ export default function CalendarPage() {
   const [selectedPriority, setSelectedPriority] = useState("all")
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [selectedView, setSelectedView] = useState("upcoming")
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
 
   const filteredEvents = mockEvents.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -208,6 +212,53 @@ export default function CalendarPage() {
     
     return matchesSearch && matchesType && matchesPriority && matchesStatus && matchesView
   })
+
+  const monthMatrix = useMemo(() => {
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const startDayIdx = firstDay.getDay() // 0=Sun
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+    const cells: { date: Date, inMonth: boolean }[] = []
+
+    // prev month leading days
+    const prevMonthDays = new Date(year, month, 0).getDate()
+    for (let i = startDayIdx - 1; i >= 0; i--) {
+      cells.push({ date: new Date(year, month - 1, prevMonthDays - i), inMonth: false })
+    }
+    // current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ date: new Date(year, month, d), inMonth: true })
+    }
+    // next month trailing to complete 6x7 grid
+    while (cells.length % 7 !== 0) {
+      const last = cells[cells.length - 1].date
+      const next = new Date(last)
+      next.setDate(last.getDate() + 1)
+      cells.push({ date: next, inMonth: false })
+    }
+    // Ensure 6 rows (42 cells)
+    while (cells.length < 42) {
+      const last = cells[cells.length - 1].date
+      const next = new Date(last)
+      next.setDate(last.getDate() + 1)
+      cells.push({ date: next, inMonth: false })
+    }
+
+    return cells
+  }, [currentMonth])
+
+  const eventsByDay = useMemo(() => {
+    const map = new Map<string, Event[]>()
+    for (const ev of filteredEvents) {
+      const d = new Date(ev.startDate)
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(ev)
+    }
+    return map
+  }, [filteredEvents])
 
   const getEventTypeIcon = (type: string) => {
     switch (type) {
@@ -591,15 +642,52 @@ export default function CalendarPage() {
           <Card>
             <CardHeader>
               <CardTitle>Calendar View</CardTitle>
-              <CardDescription>
-                Monthly calendar view of all events
-              </CardDescription>
+              <CardDescription>Monthly calendar view of all events</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-12 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Calendar view coming soon</p>
-                <p className="text-sm">Interactive calendar with drag-and-drop functionality</p>
+              <div className="flex items-center justify-between mb-4">
+                <div className="space-x-2">
+                  <Button variant="outline" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}>Prev</Button>
+                  <Button variant="outline" onClick={() => setCurrentMonth(new Date())}>Today</Button>
+                  <Button variant="outline" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}>Next</Button>
+                </div>
+                <div className="text-sm text-gray-600 font-medium">
+                  {currentMonth.toLocaleString('default', { month: 'long' })} {currentMonth.getFullYear()}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-7 gap-2 text-xs font-medium text-gray-500 mb-2">
+                {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+                  <div key={d} className="text-center">{d}</div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-2">
+                {monthMatrix.map(({ date, inMonth }, idx) => {
+                  const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+                  const dayEvents = eventsByDay.get(key) || []
+                  const isToday = (() => { const t=new Date(); return t.toDateString()===date.toDateString() })()
+                  return (
+                    <div key={idx} className={`border rounded p-2 min-h-24 ${inMonth ? 'bg-white' : 'bg-gray-50'} ${isToday ? 'ring-2 ring-blue-500' : ''}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs ${inMonth ? 'text-gray-900' : 'text-gray-400'}`}>{date.getDate()}</span>
+                        {dayEvents.length > 0 && (
+                          <Badge variant="secondary" className="text-[10px]">{dayEvents.length}</Badge>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        {dayEvents.slice(0,3).map(ev => (
+                          <div key={ev.id} className="text-[11px] truncate px-1 py-0.5 rounded bg-blue-50 text-blue-700">
+                            {ev.title}
+                          </div>
+                        ))}
+                        {dayEvents.length > 3 && (
+                          <div className="text-[11px] text-gray-500">+{dayEvents.length - 3} more</div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>

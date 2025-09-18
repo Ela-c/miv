@@ -1,11 +1,32 @@
 import { PrismaClient } from '@prisma/client'
+import fs from 'fs'
+import path from 'path'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
 async function main() {
   console.log('🌱 Starting database seeding...')
 
+  // Clean existing data for idempotent local seeding
+  await prisma.$transaction([
+    prisma.workflowRun.deleteMany(),
+    prisma.workflow.deleteMany(),
+    prisma.emailLog.deleteMany(),
+    prisma.notification.deleteMany(),
+    prisma.capitalActivity.deleteMany(),
+    prisma.activity.deleteMany(),
+    prisma.document.deleteMany(),
+    prisma.gEDSIMetric.deleteMany(),
+    prisma.venture.deleteMany(),
+  ])
+
   // Create sample users
+  const passwordAdmin = await bcrypt.hash('Admin@123', 10)
+  const passwordAnalyst = await bcrypt.hash('Analyst@123', 10)
+  const passwordManager = await bcrypt.hash('Manager@123', 10)
+  const passwordVM = await bcrypt.hash('VentureMgr@123', 10)
+
   const user1 = await prisma.user.upsert({
     where: { email: 'admin@miv.org' },
     update: {},
@@ -13,6 +34,12 @@ async function main() {
       email: 'admin@miv.org',
       name: 'Admin User',
       role: 'ADMIN',
+      passwordHash: passwordAdmin,
+      notificationPreferences: {
+        email: true,
+        inApp: true,
+        weeklyDigest: true,
+      },
     },
   })
 
@@ -23,6 +50,33 @@ async function main() {
       email: 'analyst@miv.org',
       name: 'Analyst User',
       role: 'ANALYST',
+      passwordHash: passwordAnalyst,
+      notificationPreferences: {
+        email: true,
+        inApp: true,
+      },
+    },
+  })
+
+  const user3 = await prisma.user.upsert({
+    where: { email: 'manager@miv.org' },
+    update: {},
+    create: {
+      email: 'manager@miv.org',
+      name: 'Portfolio Manager',
+      role: 'MANAGER',
+      passwordHash: passwordManager,
+    },
+  })
+
+  const user4 = await prisma.user.upsert({
+    where: { email: 'venture.manager@miv.org' },
+    update: {},
+    create: {
+      email: 'venture.manager@miv.org',
+      name: 'Venture Manager',
+      role: 'VENTURE_MANAGER',
+      passwordHash: passwordVM,
     },
   })
 
@@ -39,10 +93,13 @@ async function main() {
       pitchSummary: 'Innovative solar panel technology for rural electrification',
       inclusionFocus: 'Women-led venture focusing on rural communities',
       founderTypes: JSON.stringify(['women-led', 'rural-focus']),
-      teamSize: '5-10',
-      foundingYear: '2022',
+      teamSize: 8,
+      foundingYear: 2022,
       targetMarket: 'Rural communities in Vietnam and Cambodia',
       revenueModel: 'B2B and B2C solar panel sales',
+      revenue: 250000,
+      fundingRaised: 150000,
+      lastValuation: 1200000,
       operationalReadiness: {
         businessPlan: true,
         financialProjections: true,
@@ -57,12 +114,16 @@ async function main() {
         dueDiligence: false,
         fundingHistory: false,
       },
-      gedsiGoals: JSON.stringify(['OI.1', 'OI.2', 'OI.3']),
+      gedsiGoals: ['OI.1', 'OI.2', 'OI.3'],
       challenges: 'Limited access to capital and technical expertise',
       supportNeeded: 'Investment readiness support and technical mentorship',
       timeline: '6-12 months to Series A',
       stage: 'SCREENING' as const,
       createdById: user1.id,
+      assignedToId: user4.id,
+      intakeDate: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000),
+      screeningDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+      nextReviewAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
     },
     {
       name: 'EcoFarm Vietnam',
@@ -73,10 +134,13 @@ async function main() {
       pitchSummary: 'Sustainable farming solutions for smallholder farmers',
       inclusionFocus: 'Supporting farmers with disabilities and women farmers',
       founderTypes: JSON.stringify(['disability-inclusive', 'women-led']),
-      teamSize: '3-5',
-      foundingYear: '2021',
+      teamSize: 5,
+      foundingYear: 2021,
       targetMarket: 'Smallholder farmers in Vietnam',
       revenueModel: 'Subscription-based farming services',
+      revenue: 90000,
+      fundingRaised: 20000,
+      lastValuation: 400000,
       operationalReadiness: {
         businessPlan: true,
         financialProjections: false,
@@ -91,12 +155,15 @@ async function main() {
         dueDiligence: false,
         fundingHistory: false,
       },
-      gedsiGoals: JSON.stringify(['OI.1', 'OI.4', 'OI.5']),
+      gedsiGoals: ['OI.1', 'OI.4', 'OI.5'],
       challenges: 'Limited market access and technology adoption',
       supportNeeded: 'Market access support and technology training',
       timeline: '12-18 months to seed funding',
       stage: 'INTAKE' as const,
       createdById: user2.id,
+      assignedToId: user3.id,
+      intakeDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      nextReviewAt: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
     },
     {
       name: 'TechStart Cambodia',
@@ -107,10 +174,13 @@ async function main() {
       pitchSummary: 'Digital payment solutions for underserved communities',
       inclusionFocus: 'Financial inclusion for rural and marginalized communities',
       founderTypes: JSON.stringify(['youth-led', 'rural-focus']),
-      teamSize: '10-20',
-      foundingYear: '2023',
+      teamSize: 14,
+      foundingYear: 2023,
       targetMarket: 'Unbanked populations in Cambodia',
       revenueModel: 'Transaction fees and subscription services',
+      revenue: 380000,
+      fundingRaised: 550000,
+      lastValuation: 3500000,
       operationalReadiness: {
         businessPlan: true,
         financialProjections: true,
@@ -125,12 +195,17 @@ async function main() {
         dueDiligence: true,
         fundingHistory: true,
       },
-      gedsiGoals: JSON.stringify(['OI.1', 'OI.2', 'OI.6']),
+      gedsiGoals: ['OI.1', 'OI.2', 'OI.6'],
       challenges: 'Regulatory compliance and user adoption',
       supportNeeded: 'Regulatory guidance and market expansion support',
       timeline: '3-6 months to Series A',
       stage: 'DUE_DILIGENCE' as const,
       createdById: user1.id,
+      assignedToId: user4.id,
+      intakeDate: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000),
+      screeningDate: new Date(Date.now() - 170 * 24 * 60 * 60 * 1000),
+      dueDiligenceStart: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
+      nextReviewAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     },
   ]
 
@@ -248,9 +323,170 @@ async function main() {
         data: documentData,
       })
     }
+
+    // Capital activities per venture
+    const capitalActivities = [
+      {
+        type: 'GRANT' as const,
+        amount: 50000,
+        currency: 'USD',
+        status: 'APPROVED' as const,
+        description: 'Seed grant for pilot expansion',
+        date: new Date(),
+        investorName: 'MIV Seed Fund',
+        ventureId: venture.id,
+      },
+      {
+        type: 'EQUITY' as const,
+        amount: 300000,
+        currency: 'USD',
+        status: 'PENDING' as const,
+        description: 'Negotiating terms for Series Seed',
+        date: new Date(),
+        investorName: 'Impact Angels Network',
+        terms: { liquidationPreference: '1x non-participating' },
+        ventureId: venture.id,
+      },
+    ]
+
+    for (const ca of capitalActivities) {
+      await prisma.capitalActivity.create({ data: ca })
+    }
   }
 
   console.log('✅ Sample data created successfully!')
+
+  // Notifications
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: user1.id,
+        type: 'WELCOME',
+        title: 'Welcome to MIV Platform',
+        message: 'Your admin account has been set up.',
+      },
+      {
+        userId: user2.id,
+        type: 'WEEKLY_UPDATE',
+        title: 'Weekly Update Ready',
+        message: 'Your weekly venture analytics are available.',
+      },
+    ],
+  })
+
+  // Email logs
+  await prisma.emailLog.createMany({
+    data: [
+      {
+        to: 'admin@miv.org',
+        subject: 'Welcome to MIV',
+        template: 'welcome',
+        status: 'SENT',
+        sentAt: new Date(),
+      },
+      {
+        to: 'analyst@miv.org',
+        subject: 'Weekly Digest',
+        template: 'weekly_digest',
+        status: 'SENT',
+        sentAt: new Date(),
+      },
+    ],
+  })
+
+  // Basic workflow and a run
+  const wf = await prisma.workflow.create({
+    data: {
+      name: 'GEDSI Metric Verification',
+      description: 'Verify GEDSI metrics monthly and notify assigned owners',
+      definition: {
+        trigger: { type: 'cron', cron: '0 9 1 * *' },
+        steps: [
+          { id: 'collect', type: 'collectMetrics' },
+          { id: 'verify', type: 'verifyAgainstTargets' },
+          { id: 'notify', type: 'sendNotifications' },
+        ],
+      },
+      createdById: user1.id,
+    },
+  })
+
+  await prisma.workflowRun.create({
+    data: {
+      workflowId: wf.id,
+      status: 'SUCCEEDED',
+      input: { month: new Date().getMonth() + 1 },
+      output: { verified: 12, alerts: 3 },
+      finishedAt: new Date(),
+    },
+  })
+
+  // Seed IRIS metric catalog from JSON
+  try {
+    const catalogPath = path.join(process.cwd(), 'lib', 'iris-catalog.json')
+    if (fs.existsSync(catalogPath)) {
+      const raw = fs.readFileSync(catalogPath, 'utf-8')
+      const parsed = JSON.parse(raw)
+
+      // Normalize to array
+      const items: any[] = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed?.data)
+        ? parsed.data
+        : Object.values(parsed || {})
+
+      const records = items
+        .map((item) => {
+          const code = item.code || item.MetricCode || item.metricCode || item.id
+          const name = item.name || item.MetricName || item.metricName || item.title
+          const description = item.description || item.MetricDefinition || item.definition || item.desc
+          const unit = item.unit || item.Unit || item.measure || item.measurementUnit
+          const tags = item.tags || item.Tags || []
+
+          if (!code || !name) return null
+          return {
+            code: String(code),
+            name: String(name),
+            description: description ? String(description) : null,
+            unit: unit ? String(unit) : null,
+            tags: tags ? JSON.parse(JSON.stringify(tags)) : undefined,
+          }
+        })
+        .filter(Boolean) as Array<{
+        code: string
+        name: string
+        description?: string | null
+        unit?: string | null
+        categories?: unknown
+        tags?: unknown
+      }>
+
+      if (records.length > 0) {
+        let inserted = 0
+        for (const rec of records) {
+          await prisma.iRISMetricCatalog.upsert({
+            where: { code: rec.code },
+            update: {
+              name: rec.name,
+              description: rec.description ?? undefined,
+              unit: rec.unit ?? undefined,
+              tags: rec.tags,
+            },
+            create: rec,
+          })
+          inserted += 1
+        }
+        const count = await prisma.iRISMetricCatalog.count()
+        console.log(`✅ IRIS catalog seeded/updated. Processed: ${inserted}, Total rows: ${count}`)
+      } else {
+        console.warn('⚠️ IRIS catalog JSON parsed but produced 0 records.')
+      }
+    } else {
+      console.warn('⚠️ IRIS catalog JSON not found at lib/iris-catalog.json')
+    }
+  } catch (err) {
+    console.error('❌ Failed to seed IRIS catalog:', err)
+  }
 }
 
 main()

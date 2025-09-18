@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { AIServices } from '@/lib/ai-services';
+import { triggerVentureRecalculation } from '@/lib/calculation-service';
 import { z } from 'zod';
 
 // Validation schemas
@@ -90,6 +91,22 @@ export async function GET(request: NextRequest) {
             select: { name: true, email: true }
           },
           gedsiMetrics: true,
+          documents: {
+            orderBy: { uploadedAt: 'desc' },
+            take: 5
+          },
+          activities: {
+            include: {
+              user: {
+                select: { name: true, email: true }
+              }
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 10
+          },
+          capitalActivities: {
+            orderBy: { createdAt: 'desc' }
+          },
           _count: {
             select: {
               documents: true,
@@ -154,7 +171,7 @@ export async function POST(request: NextRequest) {
         ...validatedData,
         founderTypes: JSON.stringify(validatedData.founderTypes),
         createdById: user.id,
-      },
+      } as any,
       include: {
         createdBy: {
           select: { name: true, email: true }
@@ -162,6 +179,9 @@ export async function POST(request: NextRequest) {
         gedsiMetrics: true,
       }
     });
+
+    // Trigger initial calculations for the new venture
+    triggerVentureRecalculation(venture.id).catch(console.error);
 
     // AI-powered analysis (async)
     Promise.all([

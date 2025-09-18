@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     const completionRate = totalMetrics > 0 ? (verifiedMetrics / totalMetrics) * 100 : 0
 
     // Category analysis
-    const categoryStats = ['Gender', 'Disability', 'Social Inclusion', 'Cross-cutting'].map(category => {
+    const categoryStats = ['GENDER', 'DISABILITY', 'SOCIAL_INCLUSION', 'CROSS_CUTTING'].map(category => {
       const categoryMetrics = metrics.filter(m => m.category === category)
       const verified = categoryMetrics.filter(m => m.status === 'VERIFIED').length
       const total = categoryMetrics.length

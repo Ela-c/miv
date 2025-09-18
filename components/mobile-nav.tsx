@@ -23,7 +23,7 @@ import {
   ChartPie,
   Users,
   Settings,
-  CircleQuestion,
+  CircleQuestionMark,
   FileText,
   Brain,
   BarChart,

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useState } from "react"
+import React, { useMemo, useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -55,118 +55,7 @@ interface Event {
   lastUpdate: string
 }
 
-const mockEvents: Event[] = [
-  {
-    id: "EVENT-001",
-    title: "TechFlow Solutions - Due Diligence Call",
-    description: "Technical due diligence call with TechFlow Solutions team",
-    type: "due_diligence",
-    startDate: "2024-03-15",
-    endDate: "2024-03-15",
-    startTime: "10:00",
-    endTime: "11:30",
-    location: "Zoom Meeting",
-    attendees: ["Sarah Johnson", "Mike Chen", "David Smith"],
-    organizer: "Sarah Johnson",
-    status: "scheduled",
-    priority: "high",
-    company: "TechFlow Solutions",
-    dealId: "DEAL-001",
-    notes: "Prepare technical questions and review financials",
-    lastUpdate: "2 hours ago"
-  },
-  {
-    id: "EVENT-002",
-    title: "MIV Fund I - Board Meeting",
-    description: "Quarterly board meeting for MIV Fund I",
-    type: "board_meeting",
-    startDate: "2024-03-20",
-    endDate: "2024-03-20",
-    startTime: "14:00",
-    endTime: "16:00",
-    location: "Conference Room A",
-    attendees: ["Sarah Johnson", "Mike Chen", "Lisa Wang", "Board Members"],
-    organizer: "Sarah Johnson",
-    status: "scheduled",
-    priority: "high",
-    notes: "Review portfolio performance and discuss new investments",
-    lastUpdate: "1 day ago"
-  },
-  {
-    id: "EVENT-003",
-    title: "GreenEnergy Innovations - Investment Committee",
-    description: "Investment committee review for GreenEnergy Innovations",
-    type: "meeting",
-    startDate: "2024-03-18",
-    endDate: "2024-03-18",
-    startTime: "13:00",
-    endTime: "14:30",
-    location: "Meeting Room B",
-    attendees: ["Mike Chen", "Lisa Wang", "Alex Rodriguez"],
-    organizer: "Mike Chen",
-    status: "scheduled",
-    priority: "medium",
-    company: "GreenEnergy Innovations",
-    dealId: "DEAL-002",
-    notes: "Present investment thesis and due diligence findings",
-    lastUpdate: "3 days ago"
-  },
-  {
-    id: "EVENT-004",
-    title: "HealthTech Pro - Founder Meeting",
-    description: "Meeting with HealthTech Pro founders",
-    type: "meeting",
-    startDate: "2024-03-16",
-    endDate: "2024-03-16",
-    startTime: "15:00",
-    endTime: "16:00",
-    location: "Coffee Shop - Downtown",
-    attendees: ["David Smith", "HealthTech Pro Founders"],
-    organizer: "David Smith",
-    status: "scheduled",
-    priority: "medium",
-    company: "HealthTech Pro",
-    dealId: "DEAL-003",
-    notes: "Discuss partnership opportunities and growth strategy",
-    lastUpdate: "1 week ago"
-  },
-  {
-    id: "EVENT-005",
-    title: "FinTech Revolution - Term Sheet Deadline",
-    description: "Deadline for FinTech Revolution term sheet",
-    type: "deadline",
-    startDate: "2024-03-25",
-    endDate: "2024-03-25",
-    startTime: "17:00",
-    endTime: "17:00",
-    location: "N/A",
-    attendees: ["Emma Davis", "Tom Wilson"],
-    organizer: "Emma Davis",
-    status: "scheduled",
-    priority: "high",
-    company: "FinTech Revolution",
-    dealId: "DEAL-004",
-    notes: "Finalize term sheet and send to company",
-    lastUpdate: "2 days ago"
-  },
-  {
-    id: "EVENT-006",
-    title: "Portfolio Company Quarterly Review",
-    description: "Quarterly review with portfolio companies",
-    type: "meeting",
-    startDate: "2024-03-22",
-    endDate: "2024-03-22",
-    startTime: "09:00",
-    endTime: "12:00",
-    location: "Main Conference Room",
-    attendees: ["Sarah Johnson", "Mike Chen", "Lisa Wang", "Portfolio CEOs"],
-    organizer: "Sarah Johnson",
-    status: "scheduled",
-    priority: "medium",
-    notes: "Review quarterly performance and strategic initiatives",
-    lastUpdate: "4 days ago"
-  }
-]
+// Events will be loaded from API
 
 const eventTypes = [
   "meeting",
@@ -182,6 +71,10 @@ const priorities = ["high", "medium", "low"]
 const statuses = ["scheduled", "in_progress", "completed", "cancelled"]
 
 export default function CalendarPage() {
+  const [events, setEvents] = useState<Event[]>([])
+  const [analytics, setAnalytics] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState("all")
   const [selectedPriority, setSelectedPriority] = useState("all")
@@ -192,26 +85,62 @@ export default function CalendarPage() {
     return new Date(d.getFullYear(), d.getMonth(), 1)
   })
 
-  const filteredEvents = mockEvents.filter(event => {
-    const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (event.company && event.company.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesType = selectedType === "all" || event.type === selectedType
-    const matchesPriority = selectedPriority === "all" || event.priority === selectedPriority
-    const matchesStatus = selectedStatus === "all" || event.status === selectedStatus
-    
-    // Filter by view
-    const today = new Date()
-    const eventDate = new Date(event.startDate)
-    const isUpcoming = eventDate >= today
-    const isPast = eventDate < today
-    
-    const matchesView = selectedView === "all" || 
-                       (selectedView === "upcoming" && isUpcoming) ||
-                       (selectedView === "past" && isPast)
-    
-    return matchesSearch && matchesType && matchesPriority && matchesStatus && matchesView
-  })
+  // Load data on component mount
+  useEffect(() => {
+    loadCalendarData()
+  }, [])
+
+  // Reload data when filters change
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      if (!loading) {
+        loadCalendarData()
+      }
+    }, 300)
+    return () => clearTimeout(debounceTimer)
+  }, [searchTerm, selectedType, selectedPriority, selectedStatus, selectedView])
+
+  const loadCalendarData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const params = new URLSearchParams()
+      if (searchTerm) params.append('search', searchTerm)
+      if (selectedType !== 'all') params.append('type', selectedType)
+      if (selectedPriority !== 'all') params.append('priority', selectedPriority)
+      if (selectedStatus !== 'all') params.append('status', selectedStatus)
+      if (selectedView !== 'all') params.append('view', selectedView)
+      params.append('limit', '100')
+
+      const [eventsResponse, analyticsResponse] = await Promise.all([
+        fetch(`/api/calendar/events?${params}`),
+        fetch('/api/calendar/analytics?period=30')
+      ])
+
+      if (!eventsResponse.ok) {
+        throw new Error('Failed to fetch events')
+      }
+
+      const eventsData = await eventsResponse.json()
+      setEvents(eventsData.events || [])
+
+      if (analyticsResponse.ok) {
+        const analyticsData = await analyticsResponse.json()
+        setAnalytics(analyticsData)
+      }
+
+      console.log(`✅ Successfully loaded ${eventsData.events?.length || 0} calendar events`)
+    } catch (error) {
+      console.error('❌ Error loading calendar data:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load calendar data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Since filtering is now handled by the API, we use the events directly
+  const filteredEvents = events
 
   const monthMatrix = useMemo(() => {
     const year = currentMonth.getFullYear()
@@ -303,11 +232,49 @@ export default function CalendarPage() {
     }
   }
 
-  // Calculate metrics
-  const totalEvents = mockEvents.length
-  const upcomingEvents = mockEvents.filter(e => new Date(e.startDate) >= new Date()).length
-  const highPriorityEvents = mockEvents.filter(e => e.priority === "high").length
-  const todayEvents = mockEvents.filter(e => e.startDate === new Date().toISOString().split('T')[0]).length
+  // Calculate metrics from analytics or fallback to events
+  const totalEvents = analytics?.summary?.totalEvents || events.length
+  const upcomingEvents = analytics?.summary?.upcomingEvents || events.filter(e => new Date(e.startDate) >= new Date()).length
+  const highPriorityEvents = analytics?.summary?.highPriorityEvents || events.filter(e => e.priority === "high").length
+  const todayEvents = analytics?.summary?.todayEvents || events.filter(e => e.startDate === new Date().toISOString().split('T')[0]).length
+  const thisWeekEvents = analytics?.summary?.thisWeekEvents || 0
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading calendar...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Calendar & Events</h1>
+            <p className="text-muted-foreground">
+              Manage team schedules, meetings, and important events
+            </p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <p className="text-red-600 mb-4">Error: {error}</p>
+              <Button onClick={loadCalendarData}>
+                Retry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -369,14 +336,7 @@ export default function CalendarPage() {
             <CalendarRange className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {mockEvents.filter(e => {
-                const eventDate = new Date(e.startDate)
-                const today = new Date()
-                const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-                return eventDate >= today && eventDate <= weekFromNow
-              }).length}
-            </div>
+            <div className="text-2xl font-bold">{thisWeekEvents}</div>
             <p className="text-xs text-muted-foreground">
               Events in next 7 days
             </p>
@@ -395,22 +355,37 @@ export default function CalendarPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {eventTypes.map((type) => {
-                const count = mockEvents.filter(e => e.type === type).length
-                const percentage = ((count / totalEvents) * 100).toFixed(1)
-                return (
-                  <div key={type} className="flex items-center justify-between">
+              {analytics?.distributions?.byType ? (
+                analytics.distributions.byType.map((item: any) => (
+                  <div key={item.type} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {getEventTypeIcon(type)}
-                      <span className="text-sm capitalize">{type.replace('_', ' ')}</span>
+                      {getEventTypeIcon(item.type)}
+                      <span className="text-sm capitalize">{item.type.replace('_', ' ')}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{count}</span>
-                      <span className="text-xs text-muted-foreground">({percentage}%)</span>
+                      <span className="text-sm font-medium">{item.count}</span>
+                      <span className="text-xs text-muted-foreground">({item.percentage}%)</span>
                     </div>
                   </div>
-                )
-              })}
+                ))
+              ) : (
+                eventTypes.map((type) => {
+                  const count = events.filter(e => e.type === type).length
+                  const percentage = totalEvents > 0 ? ((count / totalEvents) * 100).toFixed(1) : '0'
+                  return (
+                    <div key={type} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getEventTypeIcon(type)}
+                        <span className="text-sm capitalize">{type.replace('_', ' ')}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{count}</span>
+                        <span className="text-xs text-muted-foreground">({percentage}%)</span>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
           </CardContent>
         </Card>
@@ -424,19 +399,31 @@ export default function CalendarPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {priorities.map((priority) => {
-                const count = mockEvents.filter(e => e.priority === priority).length
-                const percentage = ((count / totalEvents) * 100).toFixed(1)
-                return (
-                  <div key={priority} className="flex items-center justify-between">
-                    <span className="text-sm capitalize">{priority}</span>
+              {analytics?.distributions?.byPriority ? (
+                analytics.distributions.byPriority.map((item: any) => (
+                  <div key={item.priority} className="flex items-center justify-between">
+                    <span className="text-sm capitalize">{item.priority}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{count}</span>
-                      <span className="text-xs text-muted-foreground">({percentage}%)</span>
+                      <span className="text-sm font-medium">{item.count}</span>
+                      <span className="text-xs text-muted-foreground">({item.percentage}%)</span>
                     </div>
                   </div>
-                )
-              })}
+                ))
+              ) : (
+                priorities.map((priority) => {
+                  const count = events.filter(e => e.priority === priority).length
+                  const percentage = totalEvents > 0 ? ((count / totalEvents) * 100).toFixed(1) : '0'
+                  return (
+                    <div key={priority} className="flex items-center justify-between">
+                      <span className="text-sm capitalize">{priority}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{count}</span>
+                        <span className="text-xs text-muted-foreground">({percentage}%)</span>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
           </CardContent>
         </Card>
@@ -450,19 +437,31 @@ export default function CalendarPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {statuses.map((status) => {
-                const count = mockEvents.filter(e => e.status === status).length
-                const percentage = ((count / totalEvents) * 100).toFixed(1)
-                return (
-                  <div key={status} className="flex items-center justify-between">
-                    <span className="text-sm capitalize">{status.replace('_', ' ').charAt(0).toUpperCase() + status.replace('_', ' ').slice(1)}</span>
+              {analytics?.distributions?.byStatus ? (
+                analytics.distributions.byStatus.map((item: any) => (
+                  <div key={item.status} className="flex items-center justify-between">
+                    <span className="text-sm capitalize">{item.status.replace('_', ' ').charAt(0).toUpperCase() + item.status.replace('_', ' ').slice(1)}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{count}</span>
-                      <span className="text-xs text-muted-foreground">({percentage}%)</span>
+                      <span className="text-sm font-medium">{item.count}</span>
+                      <span className="text-xs text-muted-foreground">({item.percentage}%)</span>
                     </div>
                   </div>
-                )
-              })}
+                ))
+              ) : (
+                statuses.map((status) => {
+                  const count = events.filter(e => e.status === status).length
+                  const percentage = totalEvents > 0 ? ((count / totalEvents) * 100).toFixed(1) : '0'
+                  return (
+                    <div key={status} className="flex items-center justify-between">
+                      <span className="text-sm capitalize">{status.replace('_', ' ').charAt(0).toUpperCase() + status.replace('_', ' ').slice(1)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{count}</span>
+                        <span className="text-xs text-muted-foreground">({percentage}%)</span>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
           </CardContent>
         </Card>
@@ -703,7 +702,7 @@ export default function CalendarPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockEvents
+                {events
                   .filter(e => ["meeting", "call", "board_meeting", "due_diligence"].includes(e.type))
                   .map((event) => (
                     <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg">
@@ -745,7 +744,7 @@ export default function CalendarPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockEvents
+                {events
                   .filter(e => e.type === "deadline")
                   .map((event) => (
                     <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg">
@@ -774,6 +773,16 @@ export default function CalendarPage() {
                       </div>
                     </div>
                   ))}
+                {events.filter(e => e.type === "deadline").length === 0 && (
+                  <div className="text-center py-8">
+                    <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No deadlines found.</p>
+                    <Button className="mt-4" onClick={loadCalendarData}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Deadline
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

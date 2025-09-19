@@ -54,201 +54,222 @@ interface Document {
   id: string
   name: string
   type: string
-  size: string
+  size?: number
+  sizeFormatted: string
   ventureId: string
-  ventureName: string
+  venture: {
+    id: string
+    name: string
+    sector: string
+    stage: string
+    createdBy?: {
+      id: string
+      name: string
+      email: string
+    } | null
+    assignedTo?: {
+      id: string
+      name: string
+      email: string
+    } | null
+  }
   uploadedBy: string
   uploadedAt: string
   status: string
   url: string
+  mimeType?: string
   description?: string
   tags: string[]
 }
 
 const documentTypes = [
-  { value: "business-plan", label: "Business Plan" },
-  { value: "financial-model", label: "Financial Model" },
-  { value: "pitch-deck", label: "Pitch Deck" },
-  { value: "legal-document", label: "Legal Document" },
-  { value: "market-research", label: "Market Research" },
-  { value: "technical-spec", label: "Technical Specification" },
-  { value: "other", label: "Other" }
+  { value: "BUSINESS_PLAN", label: "Business Plan" },
+  { value: "FINANCIAL_STATEMENTS", label: "Financial Statements" },
+  { value: "PITCH_DECK", label: "Pitch Deck" },
+  { value: "LEGAL_DOCUMENTS", label: "Legal Documents" },
+  { value: "MARKET_RESEARCH", label: "Market Research" },
+  { value: "TEAM_PROFILE", label: "Team Profile" },
+  { value: "OTHER", label: "Other" }
 ]
 
-const ventures = [
-  { value: "all", label: "All Ventures" },
-  { value: "1", label: "AgriTech Solutions" },
-  { value: "2", label: "CleanEnergy Innovations" },
-  { value: "3", label: "HealthTech Myanmar" }
-]
+// Ventures will be loaded from API
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([])
+  const [ventures, setVentures] = useState<{value: string, label: string}[]>([{value: "all", label: "All Ventures"}])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedType, setSelectedType] = useState("all")
   const [selectedVenture, setSelectedVenture] = useState("all")
   const [uploading, setUploading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [analytics, setAnalytics] = useState<any>(null)
 
   useEffect(() => {
-    fetchDocuments()
+    loadInitialData()
   }, [])
+  
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      fetchDocuments()
+    }, 300)
+    return () => clearTimeout(debounceTimer)
+  }, [searchQuery, selectedType, selectedVenture])
 
-  const fetchDocuments = async () => {
+  const loadInitialData = async () => {
     try {
       setLoading(true)
+      setError(null)
       
-      // Fetch ventures with documents from database
-      const response = await fetch('/api/ventures?includeDocuments=true&limit=50')
-      if (!response.ok) {
-        throw new Error(`Failed to fetch documents: ${response.status} ${response.statusText}`)
+      // Load ventures and documents in parallel
+      const [venturesResponse, documentsResponse, analyticsResponse] = await Promise.all([
+        fetch('/api/ventures?limit=100'),
+        fetchDocuments(),
+        fetch('/api/documents/analytics?period=30')
+      ])
+      
+      // Load ventures for dropdown
+      if (venturesResponse.ok) {
+        const venturesData = await venturesResponse.json()
+        const ventureOptions = [
+          { value: "all", label: "All Ventures" },
+          ...venturesData.ventures.map((v: any) => ({
+            value: v.id,
+            label: v.name
+          }))
+        ]
+        setVentures(ventureOptions)
       }
       
-      const data = await response.json()
-      const ventures = data.ventures || []
+      // Load analytics
+      if (analyticsResponse.ok) {
+        const analyticsData = await analyticsResponse.json()
+        setAnalytics(analyticsData)
+      }
       
-      console.log(`📊 Found ${ventures.length} ventures for document analysis`)
-      
-      // Transform venture data into document format
-      const allDocuments: Document[] = []
-      
-      ventures.forEach((venture: any) => {
-        // Generate documents based on venture characteristics
-        const baseDocuments = generateVentureDocuments(venture)
-        allDocuments.push(...baseDocuments)
-      })
-      
-      // Sort by upload date (newest first)
-      allDocuments.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
-      
-      setDocuments(allDocuments)
-      console.log(`✅ Successfully loaded ${allDocuments.length} documents from ${ventures.length} ventures`)
     } catch (error) {
-      console.error('❌ Error fetching documents:', error)
-      
-      // Fallback to empty array if API fails
-      setDocuments([])
+      console.error('Error loading initial data:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load data')
     } finally {
       setLoading(false)
     }
   }
 
-  // Generate documents based on venture data
-  const generateVentureDocuments = (venture: any): Document[] => {
-    const documents: Document[] = []
-    const baseDocTypes = [
-      { type: 'business-plan', name: 'Business_Plan', ext: 'pdf', size: '2.4 MB' },
-      { type: 'pitch-deck', name: 'Pitch_Deck', ext: 'pptx', size: '5.2 MB' },
-      { type: 'financial-model', name: 'Financial_Model', ext: 'xlsx', size: '1.8 MB' },
-      { type: 'market-research', name: 'Market_Analysis', ext: 'pdf', size: '3.1 MB' }
-    ]
-
-    // Generate 1-3 documents per venture based on stage
-    const numDocs = venture.stage === 'FUNDED' ? 3 : 
-                   venture.stage === 'DUE_DILIGENCE' ? 2 : 1
-    
-    for (let i = 0; i < Math.min(numDocs, baseDocTypes.length); i++) {
-      const docType = baseDocTypes[i]
-      const uploadDate = new Date(venture.createdAt)
-      uploadDate.setDate(uploadDate.getDate() + i * 7) // Spread uploads over weeks
+  const fetchDocuments = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (searchQuery) params.append('search', searchQuery)
+      if (selectedType !== 'all') params.append('type', selectedType)
+      if (selectedVenture !== 'all') params.append('ventureId', selectedVenture)
+      params.append('limit', '50')
+      params.append('sortBy', 'uploadedAt')
+      params.append('sortOrder', 'desc')
       
-      const status = venture.stage === 'FUNDED' ? 'approved' :
-                    venture.stage === 'DUE_DILIGENCE' ? 'review' :
-                    'pending'
-
-      documents.push({
-        id: `${venture.id}-doc-${i}`,
-        name: `${venture.name.replace(/\s+/g, '_')}_${docType.name}.${docType.ext}`,
-        type: docType.type,
-        size: docType.size,
-        ventureId: venture.id,
-        ventureName: venture.name,
-        uploadedBy: venture.createdBy?.name || venture.assignedTo?.name || 'System User',
-        uploadedAt: uploadDate.toISOString(),
-        status,
-        url: `#${venture.id}-${docType.type}`, // Placeholder URL
-        description: generateDocDescription(venture, docType.type),
-        tags: generateDocTags(venture, docType.type)
-      })
+      const response = await fetch(`/api/documents?${params}`)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch documents: ${response.status} ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      setDocuments(data.documents || [])
+      
+      console.log(`✅ Successfully loaded ${data.documents?.length || 0} documents`)
+      return data
+    } catch (error) {
+      console.error('❌ Error fetching documents:', error)
+      setError(error instanceof Error ? error.message : 'Failed to fetch documents')
+      setDocuments([])
+      return { documents: [] }
     }
-
-    return documents
   }
 
-  const generateDocDescription = (venture: any, docType: string): string => {
-    const descriptions = {
-      'business-plan': `Comprehensive business plan for ${venture.name}`,
-      'pitch-deck': `Investment pitch deck for ${venture.name}`,
-      'financial-model': `Financial projections and modeling for ${venture.name}`,
-      'market-research': `Market analysis for ${venture.sector} sector`,
-      'team-profile': `Team profiles and organizational structure`,
-      'legal-documents': `Legal documentation and compliance materials`
-    }
-    
-    return descriptions[docType as keyof typeof descriptions] || `Document for ${venture.name}`
-  }
+  // Remove the mock document generation functions since we're using real data
 
-  const generateDocTags = (venture: any, docType: string): string[] => {
-    const tags = [docType]
-    
-    if (venture.sector) {
-      tags.push(venture.sector.toLowerCase())
-    }
-    
-    if (venture.inclusionFocus) {
-      tags.push('impact')
-    }
-    
-    if (venture.gedsiMetrics?.length > 0) {
-      tags.push('gedsi')
-    }
-    
-    if (venture.fundingRaised > 0) {
-      tags.push('funded')
-    }
-    
-    return tags.slice(0, 4) // Limit to 4 tags
-  }
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return
+    
+    if (selectedVenture === 'all') {
+      setError('Please select a specific venture before uploading documents')
+      return
+    }
 
     setUploading(true)
+    setError(null)
+    
     try {
-      // Simulate file upload
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const formData = new FormData()
       
-      // Add new documents to the list
-      const newDocuments: Document[] = Array.from(files).map((file, index) => ({
-        id: `new-${Date.now()}-${index}`,
-        name: file.name,
-        type: getFileType(file.name),
-        size: formatFileSize(file.size),
-        ventureId: "1", // Default to first venture
-        ventureName: "AgriTech Solutions",
-        uploadedBy: "Current User",
-        uploadedAt: new Date().toISOString(),
-        status: "pending",
-        url: "#",
-        tags: []
-      }))
-
-      setDocuments(prev => [...newDocuments, ...prev])
+      // Add files to form data
+      Array.from(files).forEach(file => {
+        formData.append('files', file)
+      })
+      
+      formData.append('ventureId', selectedVenture)
+      formData.append('type', selectedType !== 'all' ? selectedType : 'OTHER')
+      
+      const response = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Upload failed')
+      }
+      
+      const result = await response.json()
+      
+      // Refresh documents list
+      await fetchDocuments()
+      
+      console.log(`✅ Successfully uploaded ${result.success?.length || 0} documents`)
+      
+      if (result.errors?.length > 0) {
+        setError(`Some files failed to upload: ${result.errors.map((e: any) => e.error).join(', ')}`)
+      }
+      
     } catch (error) {
       console.error('Error uploading files:', error)
+      setError(error instanceof Error ? error.message : 'Upload failed')
     } finally {
       setUploading(false)
+    }
+  }
+  
+  const handleDeleteDocument = async (documentId: string) => {
+    if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+      return
+    }
+    
+    try {
+      const response = await fetch(`/api/documents/${documentId}`, {
+        method: 'DELETE',
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Delete failed')
+      }
+      
+      // Refresh documents list
+      await fetchDocuments()
+      
+      console.log('✅ Document deleted successfully')
+    } catch (error) {
+      console.error('Error deleting document:', error)
+      setError(error instanceof Error ? error.message : 'Delete failed')
     }
   }
 
   const getFileType = (filename: string): string => {
     const ext = filename.split('.').pop()?.toLowerCase()
-    if (ext === 'pdf') return 'business-plan'
-    if (ext === 'xlsx' || ext === 'xls') return 'financial-model'
-    if (ext === 'pptx' || ext === 'ppt') return 'pitch-deck'
-    if (ext === 'doc' || ext === 'docx') return 'legal-document'
-    return 'other'
+    if (ext === 'pdf') return 'BUSINESS_PLAN'
+    if (ext === 'xlsx' || ext === 'xls') return 'FINANCIAL_STATEMENTS'
+    if (ext === 'pptx' || ext === 'ppt') return 'PITCH_DECK'
+    if (ext === 'doc' || ext === 'docx') return 'LEGAL_DOCUMENTS'
+    return 'OTHER'
   }
 
   const formatFileSize = (bytes: number): string => {
@@ -261,16 +282,13 @@ export default function DocumentsPage() {
 
   const getFileIcon = (type: string) => {
     const icons: { [key: string]: React.ReactNode } = {
-      'business-plan': <FileText className="h-4 w-4" />,
-      'financial-model': <FileText className="h-4 w-4" />,
-      'pitch-deck': <FileText className="h-4 w-4" />,
-      'legal-document': <FileText className="h-4 w-4" />,
-      'market-research': <FileText className="h-4 w-4" />,
-      'technical-spec': <FileText className="h-4 w-4" />,
-      'image': <Image className="h-4 w-4" />,
-      'video': <FileVideo className="h-4 w-4" />,
-      'audio': <FileAudio className="h-4 w-4" />,
-      'other': <File className="h-4 w-4" />
+      'BUSINESS_PLAN': <FileText className="h-4 w-4" />,
+      'FINANCIAL_STATEMENTS': <FileText className="h-4 w-4" />,
+      'PITCH_DECK': <FileText className="h-4 w-4" />,
+      'LEGAL_DOCUMENTS': <FileText className="h-4 w-4" />,
+      'MARKET_RESEARCH': <FileText className="h-4 w-4" />,
+      'TEAM_PROFILE': <FileText className="h-4 w-4" />,
+      'OTHER': <File className="h-4 w-4" />
     }
     return icons[type] || <File className="h-4 w-4" />
   }
@@ -305,14 +323,8 @@ export default function DocumentsPage() {
     })
   }
 
-  const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         doc.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesType = selectedType === 'all' || doc.type === selectedType
-    const matchesVenture = selectedVenture === 'all' || doc.ventureId === selectedVenture
-    
-    return matchesSearch && matchesType && matchesVenture
-  })
+  // Since filtering is now handled by the API, we don't need client-side filtering
+  const filteredDocuments = documents
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -344,6 +356,30 @@ export default function DocumentsPage() {
       </div>
     )
   }
+  
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Document Management</h1>
+            <p className="text-gray-600">Upload, organize, and manage venture documents</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <p className="text-red-600 mb-4">Error: {error}</p>
+              <Button onClick={loadInitialData}>
+                Retry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -353,10 +389,18 @@ export default function DocumentsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Document Management</h1>
           <p className="text-gray-600">Upload, organize, and manage venture documents</p>
         </div>
-        <Button>
+        <div className="flex gap-2">
+          <Button onClick={() => document.getElementById('file-upload')?.click()} disabled={uploading}>
           <Plus className="h-4 w-4 mr-2" />
-          Upload Documents
+            {uploading ? 'Uploading...' : 'Upload Documents'}
+          </Button>
+          {analytics && (
+            <Button variant="outline">
+              <FileText className="h-4 w-4 mr-2" />
+              {analytics.summary.totalDocuments} Total Documents
         </Button>
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="all" className="space-y-6">
@@ -392,6 +436,16 @@ export default function DocumentsPage() {
                 <p className="text-lg font-medium text-gray-900 mb-2">
                   {uploading ? 'Uploading...' : 'Drop files here or click to upload'}
                 </p>
+                {selectedVenture === 'all' && (
+                  <p className="text-sm text-orange-600 mb-2">
+                    Please select a specific venture from the filters below before uploading
+                  </p>
+                )}
+                {error && (
+                  <p className="text-sm text-red-600 mb-2">
+                    {error}
+                  </p>
+                )}
                 <p className="text-gray-600 mb-4">
                   Support for PDF, Excel, PowerPoint, Word, and image files
                 </p>
@@ -494,7 +548,10 @@ export default function DocumentsPage() {
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Building2 className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm">{document.ventureName}</span>
+                          <div>
+                            <span className="text-sm font-medium">{document.venture.name}</span>
+                            <p className="text-xs text-gray-500">{document.venture.sector}</p>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -503,7 +560,7 @@ export default function DocumentsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {document.size}
+                        {document.sizeFormatted}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
@@ -533,19 +590,20 @@ export default function DocumentsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => window.open(document.url, '_blank')}>
                               <Eye className="h-4 w-4 mr-2" />
                               View
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              const link = window.document.createElement('a')
+                              link.href = document.url
+                              link.download = document.name
+                              link.click()
+                            }}>
                               <Download className="h-4 w-4 mr-2" />
                               Download
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Archive className="h-4 w-4 mr-2" />
-                              Archive
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem onClick={() => handleDeleteDocument(document.id)}>
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
                             </DropdownMenuItem>
@@ -567,7 +625,52 @@ export default function DocumentsPage() {
               <CardDescription>Documents uploaded in the last 7 days</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600">Recent documents will be displayed here.</p>
+              {analytics ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h3 className="text-lg font-semibold text-blue-900">Recent Uploads</h3>
+                      <p className="text-2xl font-bold text-blue-600">{analytics.summary.recentDocuments}</p>
+                      <p className="text-sm text-blue-700">Last 30 days</p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <h3 className="text-lg font-semibold text-green-900">Total Storage</h3>
+                      <p className="text-2xl font-bold text-green-600">{analytics.summary.totalStorageFormatted}</p>
+                      <p className="text-sm text-green-700">Across all documents</p>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <h3 className="text-lg font-semibold text-purple-900">Growth Rate</h3>
+                      <p className="text-2xl font-bold text-purple-600">{analytics.summary.growthRate}%</p>
+                      <p className="text-sm text-purple-700">vs previous period</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {documents.filter(doc => {
+                      const daysSince = (Date.now() - new Date(doc.uploadedAt).getTime()) / (1000 * 60 * 60 * 24)
+                      return daysSince <= 7
+                    }).slice(0, 10).map((document) => (
+                      <div key={document.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex-shrink-0 w-8 h-8 bg-white rounded flex items-center justify-center">
+                            {getFileIcon(document.type)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{document.name}</p>
+                            <p className="text-sm text-gray-500">{document.venture.name} • {formatDate(document.uploadedAt)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge className={getStatusColor(document.status)}>{document.status}</Badge>
+                          <span className="text-sm text-gray-500">{document.sizeFormatted}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-600">Loading recent documents...</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -579,7 +682,55 @@ export default function DocumentsPage() {
               <CardDescription>Documents awaiting approval</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600">Pending documents will be displayed here.</p>
+              <div className="space-y-3">
+                {documents.filter(doc => doc.status === 'pending' || doc.status === 'review').map((document) => (
+                  <div key={document.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
+                        {getFileIcon(document.type)}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{document.name}</p>
+                        <p className="text-sm text-gray-500">{document.venture.name}</p>
+                        <p className="text-xs text-gray-400">{document.description}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <Badge className={getStatusColor(document.status)}>
+                          {getStatusIcon(document.status)}
+                          <span className="ml-1">{document.status}</span>
+                        </Badge>
+                        <p className="text-xs text-gray-500 mt-1">{formatDate(document.uploadedAt)}</p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => window.open(document.url, '_blank')}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Review
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Approve
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-red-600">
+                            <AlertTriangle className="h-4 w-4 mr-2" />
+                            Request Changes
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+                {documents.filter(doc => doc.status === 'pending' || doc.status === 'review').length === 0 && (
+                  <p className="text-gray-500 text-center py-8">No documents pending review.</p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -591,7 +742,47 @@ export default function DocumentsPage() {
               <CardDescription>Documents that have been approved</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600">Approved documents will be displayed here.</p>
+              <div className="space-y-3">
+                {documents.filter(doc => doc.status === 'approved').map((document) => (
+                  <div key={document.id} className="flex items-center justify-between p-4 border border-green-200 bg-green-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded flex items-center justify-center">
+                        {getFileIcon(document.type)}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{document.name}</p>
+                        <p className="text-sm text-gray-600">{document.venture.name}</p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          {document.tags.map((tag, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">{tag}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <div className="flex items-center text-green-600 mb-1">
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          <span className="text-sm font-medium">Approved</span>
+                        </div>
+                        <p className="text-xs text-gray-500">{formatDate(document.uploadedAt)}</p>
+                        <p className="text-xs text-gray-500">{document.sizeFormatted}</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open(document.url, '_blank')}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {documents.filter(doc => doc.status === 'approved').length === 0 && (
+                  <p className="text-gray-500 text-center py-8">No approved documents yet.</p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

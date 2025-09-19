@@ -41,7 +41,8 @@ import {
   MapPin,
   Calendar,
   RefreshCw,
-  Download
+  Download,
+  AlertCircle
 } from "lucide-react"
 import Link from "next/link"
 
@@ -80,13 +81,14 @@ export default function VenturesPage() {
           const data = await response.json()
           setVentures(data)
         } else {
-          // Fallback to sample data if API fails
-          setVentures(sampleVentures)
+          // Handle API error
+          setError('Failed to fetch ventures from database')
+          setVentures([])
         }
       } catch (error) {
         console.error('Failed to fetch ventures:', error)
-        // Use sample data as fallback
-        setVentures(sampleVentures)
+        setError('Database connection failed')
+        setVentures([])
       } finally {
         setLoading(false)
       }
@@ -95,84 +97,8 @@ export default function VenturesPage() {
     fetchVentures()
   }, [])
 
-  // Sample data fallback
-  const sampleVentures: Venture[] = [
-    {
-      id: "1",
-      name: "GreenTech Solutions",
-      description: "Innovative clean technology solutions for sustainable agriculture",
-      sector: "CleanTech",
-      location: "Ho Chi Minh City, Vietnam",
-      stage: "EARLY_GROWTH",
-      status: "ACTIVE",
-      fundingAmount: 500000,
-      teamSize: 15,
-      foundedYear: 2022,
-      gedsiScore: 92,
-      createdAt: "2024-01-15T00:00:00Z",
-      updatedAt: "2024-01-15T00:00:00Z"
-    },
-    {
-      id: "2",
-      name: "EcoFarm Vietnam",
-      description: "Digital platform connecting farmers with sustainable farming practices",
-      sector: "Agriculture",
-      location: "Hanoi, Vietnam",
-      stage: "VALIDATION",
-      status: "ACTIVE",
-      fundingAmount: 250000,
-      teamSize: 8,
-      foundedYear: 2023,
-      gedsiScore: 88,
-      createdAt: "2024-01-14T00:00:00Z",
-      updatedAt: "2024-01-14T00:00:00Z"
-    },
-    {
-      id: "3",
-      name: "TechStart Inc",
-      description: "Financial technology solutions for underserved communities",
-      sector: "FinTech",
-      location: "Phnom Penh, Cambodia",
-      stage: "IDEA",
-      status: "ACTIVE",
-      fundingAmount: 100000,
-      teamSize: 5,
-      foundedYear: 2024,
-      gedsiScore: 76,
-      createdAt: "2024-01-13T00:00:00Z",
-      updatedAt: "2024-01-13T00:00:00Z"
-    },
-    {
-      id: "4",
-      name: "HealthTech Cambodia",
-      description: "Telemedicine platform for rural healthcare access",
-      sector: "Healthcare",
-      location: "Siem Reap, Cambodia",
-      stage: "SCALE_UP",
-      status: "ACTIVE",
-      fundingAmount: 750000,
-      teamSize: 22,
-      foundedYear: 2021,
-      gedsiScore: 94,
-      createdAt: "2024-01-12T00:00:00Z",
-      updatedAt: "2024-01-12T00:00:00Z"
-    },
-    {
-      id: "5",
-      name: "Solar Energy Co",
-      description: "Renewable energy solutions for residential and commercial use",
-      sector: "CleanTech",
-      location: "Bangkok, Thailand",
-      stage: "MATURE",
-      status: "INACTIVE",
-      fundingAmount: 1200000,
-      teamSize: 35,
-      foundedYear: 2019,
-      gedsiScore: 85,
-      createdAt: "2024-01-11T00:00:00Z",
-      updatedAt: "2024-01-11T00:00:00Z"
-    }
-  ]
+  // Error state for failed API calls
+  const [error, setError] = useState<string | null>(null)
 
   const getStageColor = (stage: string) => {
     const colors: { [key: string]: string } = {
@@ -258,59 +184,93 @@ export default function VenturesPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
+      {/* Error State */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
-              <Building2 className="h-5 w-5 text-blue-500" />
+              <AlertCircle className="h-5 w-5 text-red-500" />
               <div>
-                <p className="text-sm text-gray-600">Total Ventures</p>
-                <p className="text-2xl font-bold">{ventures.length}</p>
+                <p className="font-medium text-red-800">Database Connection Error</p>
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && ventures.length === 0 && (
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-sm text-gray-600">Total Funding</p>
-                <p className="text-2xl font-bold">
-                  {formatCurrency(ventures.reduce((sum, v) => sum + v.fundingAmount, 0))}
-                </p>
-              </div>
-            </div>
+          <CardContent className="p-12 text-center">
+            <Building2 className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No Ventures Found</h3>
+            <p className="text-muted-foreground mb-6">
+              Start building your portfolio by adding your first venture to the pipeline.
+            </p>
+            <Button onClick={() => window.location.href = '/dashboard/venture-intake'}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add First Venture
+            </Button>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-purple-500" />
-              <div>
-                <p className="text-sm text-gray-600">Total Team Members</p>
-                <p className="text-2xl font-bold">
-                  {ventures.reduce((sum, v) => sum + v.teamSize, 0)}
-                </p>
+      )}
+
+      {/* Stats Cards - Only show when we have data */}
+      {!loading && !error && ventures.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-2">
+                <Building2 className="h-5 w-5 text-blue-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Total Ventures</p>
+                  <p className="text-2xl font-bold">{ventures.length}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <Target className="h-5 w-5 text-orange-500" />
-              <div>
-                <p className="text-sm text-gray-600">Avg GEDSI Score</p>
-                <p className="text-2xl font-bold">
-                  {Math.round(ventures.reduce((sum, v) => sum + v.gedsiScore, 0) / ventures.length || 0)}%
-                </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-2">
+                <DollarSign className="h-5 w-5 text-green-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Total Funding</p>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(ventures.reduce((sum, v) => sum + (v.fundingAmount || 0), 0))}
+                  </p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-2">
+                <Users className="h-5 w-5 text-purple-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Total Team Members</p>
+                  <p className="text-2xl font-bold">
+                    {ventures.reduce((sum, v) => sum + (v.teamSize || 0), 0)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-2">
+                <Target className="h-5 w-5 text-orange-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Avg GEDSI Score</p>
+                  <p className="text-2xl font-bold">
+                    {ventures.length > 0 ? Math.round(ventures.reduce((sum, v) => sum + (v.gedsiScore || 0), 0) / ventures.length) : 0}%
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Filters */}
       <Card>

@@ -30,6 +30,40 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     });
 
+    // Fetch fund operations data
+    const fundWorkflows = await prisma.fundWorkflow.findMany({
+      include: {
+        assignee: { select: { name: true, email: true } },
+        fund: { select: { name: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const fundLifecyclePhases = await prisma.fundLifecyclePhase.findMany({
+      include: {
+        fund: { select: { name: true } }
+      },
+      orderBy: { phase: 'asc' }
+    });
+
+    const fundOperationTasks = await prisma.fundOperationTask.findMany({
+      include: {
+        assignee: { select: { name: true, email: true } },
+        creator: { select: { name: true, email: true } },
+        fund: { select: { name: true } },
+        workflow: { select: { name: true, type: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const reports = await prisma.report.findMany({
+      include: {
+        creator: { select: { name: true, email: true } },
+        fund: { select: { name: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
     // Aggregate capital activities by type to create fund-like structures
     const fundData = {
       totalVentures: ventures.length,
@@ -79,8 +113,8 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    // Create fund-like structures from the data
-    const funds = [
+    // Create fund-like structures from the data only if there are ventures with capital activities
+    const funds = fundData.totalCapitalActivities > 0 ? [
       {
         id: "FUND-EQUITY",
         name: "MIV Equity Fund",
@@ -195,7 +229,7 @@ export async function GET(request: NextRequest) {
         legalCounsel: "White & Case",
         primeBroker: "J.P. Morgan"
       }
-    ].filter(fund => fund.investments > 0); // Only include funds with actual investments
+    ].filter(fund => fund.investments > 0) : []; // Only include funds with actual investments
 
     // Create capital calls from recent capital activities
     const recentCapitalActivities = ventures
@@ -259,63 +293,28 @@ export async function GET(request: NextRequest) {
       exDate: new Date(ca.updatedAt).toISOString().split('T')[0]
     }));
 
-    // Generate Limited Partners based on venture data
-    const limitedPartners = [
-      {
-        id: "LP-001",
-        name: "Asia Development Bank",
-        type: "development",
-        commitment: "$10.0M",
-        called: `$${(fundData.totalFunding * 0.4 / 1000000).toFixed(1)}M`,
-        distributed: `$${(fundData.totalFunding * 0.1 / 1000000).toFixed(1)}M`,
-        nav: `$${(fundData.totalFunding * 0.5 / 1000000).toFixed(1)}M`,
-        irr: 16.8,
-        tvpi: 1.25,
-        dpi: 0.18,
-        country: "Philippines",
-        currency: "USD",
-        contactPerson: "Maria Santos",
-        email: "m.santos@adb.org",
-        phone: "+63-2-632-4444",
-        status: "active",
-        investmentDate: "2020-03-15",
-        lastCapitalCall: "2024-01-15",
-        lastDistribution: "2023-12-01",
-        riskRating: "low",
-        kycStatus: "approved",
-        accredited: true
+    // Fetch real Limited Partners from database if includeLPs is true
+    const limitedPartners = includeLPs ? await prisma.limitedPartner.findMany({
+      include: {
+        fund: {
+          select: { name: true, id: true }
+        }
       },
-      {
-        id: "LP-002",
-        name: "Singapore GIC",
-        type: "sovereign",
-        commitment: "$8.0M",
-        called: `$${(fundData.totalFunding * 0.3 / 1000000).toFixed(1)}M`,
-        distributed: `$${(fundData.totalFunding * 0.08 / 1000000).toFixed(1)}M`,
-        nav: `$${(fundData.totalFunding * 0.4 / 1000000).toFixed(1)}M`,
-        irr: 18.2,
-        tvpi: 1.31,
-        dpi: 0.22,
-        country: "Singapore",
-        currency: "USD",
-        contactPerson: "Lim Wei Ming",
-        email: "wm.lim@gic.com.sg",
-        phone: "+65-6889-8888",
-        status: "active",
-        investmentDate: "2020-02-01",
-        lastCapitalCall: "2024-01-15",
-        lastDistribution: "2023-11-15",
-        riskRating: "low",
-        kycStatus: "approved",
-        accredited: true
-      }
-    ];
+      orderBy: { createdAt: 'desc' }
+    }) : [];
 
     const response = {
       funds,
       capitalCalls: includeCapitalActivities ? capitalCalls : [],
       distributions: includeCapitalActivities ? distributions : [],
       limitedPartners: includeLPs ? limitedPartners : [],
+      // Fund operations data
+      workflows: fundWorkflows,
+      lifecyclePhases: fundLifecyclePhases,
+      operationTasks: fundOperationTasks,
+      reports: reports,
+      // Include ventures for document access
+      ventures: ventures,
       summary: {
         totalFunds: funds.length,
         totalAUM: fundData.totalFunding,

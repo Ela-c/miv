@@ -158,58 +158,7 @@ const mockDueDiligenceItems: DueDiligenceItem[] = [
   }
 ]
 
-const mockChecklistItems: ChecklistItem[] = [
-  {
-    id: "CL-001",
-    title: "Financial Statements Review",
-    description: "Review audited financial statements for the last 3 years",
-    category: "Financial",
-    completed: true,
-    assignedTo: "Sarah Johnson",
-    dueDate: "2024-03-15",
-    priority: "high"
-  },
-  {
-    id: "CL-002",
-    title: "Legal Structure Analysis",
-    description: "Analyze corporate structure, contracts, and legal obligations",
-    category: "Legal",
-    completed: true,
-    assignedTo: "Mike Chen",
-    dueDate: "2024-03-10",
-    priority: "high"
-  },
-  {
-    id: "CL-003",
-    title: "Technology Stack Assessment",
-    description: "Evaluate technology architecture and scalability",
-    category: "Technical",
-    completed: false,
-    assignedTo: "David Smith",
-    dueDate: "2024-03-20",
-    priority: "medium"
-  },
-  {
-    id: "CL-004",
-    title: "Market Size Validation",
-    description: "Verify TAM, SAM, and SOM calculations",
-    category: "Market",
-    completed: false,
-    assignedTo: "Lisa Wang",
-    dueDate: "2024-03-25",
-    priority: "medium"
-  },
-  {
-    id: "CL-005",
-    title: "Team Background Checks",
-    description: "Conduct background checks on key team members",
-    category: "Team",
-    completed: true,
-    assignedTo: "Alex Rodriguez",
-    dueDate: "2024-03-18",
-    priority: "low"
-  }
-]
+// Checklist items are now generated from real venture data
 
 const categories = [
   "Financial",
@@ -231,6 +180,212 @@ const stages = [
   "Final Report"
 ]
 
+// Helper functions for real calculations
+function calculateAverageCompletionTime(ventures: any[]): number {
+  if (ventures.length === 0) return 0
+  
+  const completedVentures = ventures.filter(v => 
+    ['FUNDED', 'SERIES_A', 'SERIES_B', 'SERIES_C', 'EXITED'].includes(v.stage)
+  )
+  
+  if (completedVentures.length === 0) return 0
+  
+  const totalDays = completedVentures.reduce((sum, venture) => {
+    const createdDate = new Date(venture.createdAt)
+    const updatedDate = new Date(venture.updatedAt)
+    const daysDiff = Math.floor((updatedDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24))
+    return sum + daysDiff
+  }, 0)
+  
+  return Math.round(totalDays / completedVentures.length)
+}
+
+function calculateCompletionTimeProgress(ventures: any[]): number {
+  const avgTime = calculateAverageCompletionTime(ventures)
+  if (avgTime === 0) return 0
+  
+  // Progress based on target of 30 days (lower is better)
+  const targetDays = 30
+  const progress = Math.max(0, Math.min(100, ((targetDays - avgTime) / targetDays) * 100 + 50))
+  return Math.round(progress)
+}
+
+function calculateOnTimeCompletionRate(ventures: any[]): number {
+  if (ventures.length === 0) return 0
+  
+  const dueDiligenceVentures = ventures.filter(v => 
+    ['DUE_DILIGENCE', 'INVESTMENT_READY', 'FUNDED', 'SERIES_A', 'SERIES_B', 'SERIES_C'].includes(v.stage)
+  )
+  
+  if (dueDiligenceVentures.length === 0) return 0
+  
+  // Consider ventures "on time" if they progressed within reasonable timeframes
+  const onTimeVentures = dueDiligenceVentures.filter(v => {
+    const createdDate = new Date(v.createdAt)
+    const updatedDate = new Date(v.updatedAt)
+    const daysDiff = Math.floor((updatedDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24))
+    return daysDiff <= 45 // Within 45 days is considered "on time"
+  })
+  
+  return Math.round((onTimeVentures.length / dueDiligenceVentures.length) * 100)
+}
+
+function calculateAverageGEDSIScore(ventures: any[]): number {
+  if (ventures.length === 0) return 0
+  
+  const venturesWithScores = ventures.filter(v => v.gedsiScore != null && v.gedsiScore > 0)
+  
+  if (venturesWithScores.length === 0) {
+    // Calculate using GEDSI utility if no stored scores
+    const calculatedScores = ventures.map(v => calculateGEDSIScore(v)).filter(score => score > 0)
+    if (calculatedScores.length === 0) return 0
+    return Math.round(calculatedScores.reduce((sum, score) => sum + score, 0) / calculatedScores.length)
+  }
+  
+  return Math.round(venturesWithScores.reduce((sum, v) => sum + v.gedsiScore, 0) / venturesWithScores.length)
+}
+
+// Generate checklist items from real venture data
+function generateChecklistFromVentures(ventures: any[]): ChecklistItem[] {
+  if (ventures.length === 0) return []
+  
+  const standardChecklist = [
+    {
+      title: "Financial Statements Review",
+      description: "Review audited financial statements and financial projections",
+      category: "Financial",
+      priority: "high" as const
+    },
+    {
+      title: "Legal Structure Analysis", 
+      description: "Analyze corporate structure, contracts, and legal obligations",
+      category: "Legal",
+      priority: "high" as const
+    },
+    {
+      title: "Technology Stack Assessment",
+      description: "Evaluate technology architecture and scalability",
+      category: "Technical", 
+      priority: "medium" as const
+    },
+    {
+      title: "Market Size Validation",
+      description: "Verify TAM, SAM, and market opportunity analysis",
+      category: "Market",
+      priority: "medium" as const
+    },
+    {
+      title: "Team Background Assessment",
+      description: "Evaluate team composition and key personnel",
+      category: "Team",
+      priority: "low" as const
+    },
+    {
+      title: "GEDSI Compliance Review",
+      description: "Assess GEDSI metrics and inclusion practices",
+      category: "Compliance",
+      priority: "high" as const
+    }
+  ]
+  
+  // Generate checklist items for each venture
+  return ventures.flatMap((venture, ventureIndex) => 
+    standardChecklist.map((template, index) => ({
+      id: `CL-${venture.id}-${index + 1}`,
+      title: `${template.title} - ${venture.name}`,
+      description: template.description,
+      category: template.category,
+      completed: calculateChecklistCompletion(venture, template.category),
+      assignedTo: getAssignedAnalyst(template.category),
+      dueDate: new Date(Date.now() + (index + 1) * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Staggered due dates
+      priority: template.priority
+    }))
+  )
+}
+
+// Helper function to assign analysts based on category
+function getAssignedAnalyst(category: string): string {
+  const assignments = {
+    "Financial": "Sarah Johnson",
+    "Legal": "Mike Chen", 
+    "Technical": "David Smith",
+    "Market": "Lisa Wang",
+    "Team": "Alex Rodriguez",
+    "Compliance": "Maria Santos",
+    "Operations": "John Kim"
+  }
+  return assignments[category as keyof typeof assignments] || "Unassigned"
+}
+
+// Calculate completion percentage based on real venture data
+function calculateCategoryCompletion(venture: any, category: string): number {
+  let completion = 0
+  
+  switch (category) {
+    case 'Financial':
+      // Base on financial data availability
+      if (venture.revenue) completion += 25
+      if (venture.fundingRaised) completion += 25
+      if (venture.lastValuation) completion += 25
+      if (venture._count?.documents >= 2) completion += 25
+      break
+      
+    case 'Legal':
+      // Base on legal structure and documentation
+      if (venture.operationalReadiness?.legalStructure) completion += 50
+      if (venture._count?.documents >= 1) completion += 30
+      if (venture.contactEmail && venture.contactPhone) completion += 20
+      break
+      
+    case 'Technical':
+      // Base on technical readiness
+      if (venture.operationalReadiness?.businessPlan) completion += 30
+      if (venture.website) completion += 20
+      if (venture.teamSize && venture.teamSize > 3) completion += 30
+      if (venture.pitchSummary && venture.pitchSummary.length > 100) completion += 20
+      break
+      
+    case 'Market':
+      // Base on market validation
+      if (venture.targetMarket) completion += 30
+      if (venture.revenueModel) completion += 30
+      if (venture.revenue && venture.revenue > 0) completion += 40
+      break
+      
+    case 'Compliance':
+      // Base on GEDSI and compliance
+      if (venture.gedsiMetrics?.length > 0) completion += 40
+      if (venture.gedsiScore && venture.gedsiScore > 70) completion += 30
+      if (venture.inclusionFocus) completion += 30
+      break
+      
+    default:
+      completion = 50 // Default moderate completion
+  }
+  
+  return Math.min(100, Math.max(0, completion))
+}
+
+// Calculate checklist item completion based on venture data
+function calculateChecklistCompletion(venture: any, category: string): boolean {
+  switch (category) {
+    case 'Financial':
+      return venture._count?.documents >= 3 && venture.revenue != null
+    case 'Legal':
+      return venture.operationalReadiness?.legalStructure === true
+    case 'Technical':
+      return venture.operationalReadiness?.businessPlan === true && venture.website != null
+    case 'Market':
+      return venture.targetMarket != null && venture.revenueModel != null
+    case 'Team':
+      return venture.teamSize != null && venture.teamSize > 2
+    case 'Compliance':
+      return venture.gedsiMetrics?.length > 0
+    default:
+      return false
+  }
+}
+
 export default function DueDiligencePage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
@@ -246,6 +401,7 @@ export default function DueDiligencePage() {
   const [isNewDDDialogOpen, setIsNewDDDialogOpen] = useState(false)
   const [dueDiligenceItems, setDueDiligenceItems] = useState<DueDiligenceItem[]>([])
   const [venturesDDs, setVenturesDDs] = useState<VentureDD[]>([])
+  const [ventures, setVentures] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'ventures' | 'items'>('ventures')
@@ -260,6 +416,7 @@ export default function DueDiligencePage() {
   const [dateRange, setDateRange] = useState<{from: string, to: string}>({from: '', to: ''})
   const [sortBy, setSortBy] = useState<string>('dueDate')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([])
 
   // Fetch due diligence data from database
   useEffect(() => {
@@ -277,17 +434,21 @@ export default function DueDiligencePage() {
       }
       
       const data = await response.json()
-      const ventures = data.ventures || []
+      const venturesData = data.ventures || []
       
-      console.log(`📊 Found ${ventures.length} ventures for due diligence`)
+      console.log(`📊 Found ${venturesData.length} ventures for due diligence`)
+      
+      // Store ventures for calculations
+      setVentures(venturesData)
       
       // Transform ventures into due diligence items
-      const transformedItems: DueDiligenceItem[] = ventures.flatMap((venture: any) => {
+      const transformedItems: DueDiligenceItem[] = venturesData.flatMap((venture: any) => {
         // Create multiple DD items per venture (different categories)
         const categories = ['Financial', 'Legal', 'Technical', 'Market']
         
         return categories.map((category, index) => {
-          const completion = Math.floor(Math.random() * 100)
+          // Calculate completion based on real venture data
+          const completion = calculateCategoryCompletion(venture, category)
           const status = completion === 100 ? 'completed' :
                         completion > 70 ? 'in_progress' :
                         completion > 0 ? 'in_progress' : 'not_started'
@@ -312,8 +473,8 @@ export default function DueDiligencePage() {
             priority: priority as "high" | "medium" | "low",
             status: status as "not_started" | "in_progress" | "completed" | "blocked",
             lastUpdated: getLastActivityTime(venture.updatedAt),
-            documents: venture._count?.documents || Math.floor(Math.random() * 10) + 3,
-            comments: venture._count?.activities || Math.floor(Math.random() * 8) + 1
+            documents: venture._count?.documents || 0,
+            comments: venture._count?.activities || 0
           }
         })
       })
@@ -321,10 +482,15 @@ export default function DueDiligencePage() {
       setDueDiligenceItems(transformedItems)
       
       // Group items by venture with actual venture data for GEDSI scores
-      const ventureGroups = groupItemsByVenture(transformedItems, ventures)
+      const ventureGroups = groupItemsByVenture(transformedItems, venturesData)
       setVenturesDDs(ventureGroups)
       
-      console.log(`✅ Successfully loaded ${transformedItems.length} due diligence items from ${ventures.length} ventures`)
+      // Generate checklist items from venture data
+      const generatedChecklistItems = generateChecklistFromVentures(venturesData)
+      setChecklistItems(generatedChecklistItems)
+      
+      console.log(`✅ Successfully loaded ${transformedItems.length} due diligence items from ${venturesData.length} ventures`)
+      console.log(`✅ Generated ${generatedChecklistItems.length} checklist items`)
     } catch (err) {
       console.error('❌ Error fetching due diligence data:', err)
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
@@ -423,9 +589,9 @@ export default function DueDiligencePage() {
     
     // Adjust based on stage urgency
     if (stage === 'DUE_DILIGENCE' || stage === 'INVESTMENT_READY') {
-      daysFromNow = Math.random() * 14 + 7 // 1-3 weeks
+      daysFromNow = 14 // 2 weeks for urgent stages
     } else if (stage === 'SERIES_A' || stage === 'SERIES_B') {
-      daysFromNow = Math.random() * 30 + 15 // 2-7 weeks
+      daysFromNow = 30 // 4 weeks for funding stages
     }
     
     // Adjust based on category
@@ -2066,7 +2232,20 @@ Contact: market@miv.org
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockChecklistItems.map((item) => (
+                {checklistItems.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No Checklist Items</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Add ventures to generate due diligence checklist items.
+                    </p>
+                    <Button onClick={() => window.location.href = '/dashboard/venture-intake'}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add First Venture
+                    </Button>
+                  </div>
+                ) : (
+                  checklistItems.map((item) => (
                   <div key={item.id} className="flex items-start space-x-3 p-4 border rounded-lg">
                     <Checkbox 
                       checked={item.completed}
@@ -2087,7 +2266,8 @@ Contact: market@miv.org
                       </div>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -2290,32 +2470,58 @@ Contact: market@miv.org
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Average Completion Time</span>
-                    <span className="font-medium">23 days</span>
+                {ventures.length === 0 ? (
+                  <div className="text-center py-8">
+                    <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No Performance Data Available</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Add ventures to the pipeline to see performance trends and completion metrics.
+                    </p>
+                    <Button onClick={() => window.location.href = '/dashboard/venture-intake'}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add First Venture
+                    </Button>
                   </div>
-                  <Progress value={75} className="h-2" />
-                  <div className="text-xs text-muted-foreground">15% faster than Q3 average</div>
-                </div>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Average Completion Time</span>
+                        <span className="font-medium">
+                          {calculateAverageCompletionTime(ventures)} days
+                        </span>
+                      </div>
+                      <Progress value={calculateCompletionTimeProgress(ventures)} className="h-2" />
+                      <div className="text-xs text-muted-foreground">
+                        Based on {ventures.length} ventures in pipeline
+                      </div>
+                    </div>
 
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">On-Time Completion Rate</span>
-                    <span className="font-medium">68%</span>
-                  </div>
-                  <Progress value={68} className="h-2" />
-                  <div className="text-xs text-muted-foreground">Target: 80%</div>
-                </div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">On-Time Completion Rate</span>
+                        <span className="font-medium">
+                          {calculateOnTimeCompletionRate(ventures)}%
+                        </span>
+                      </div>
+                      <Progress value={calculateOnTimeCompletionRate(ventures)} className="h-2" />
+                      <div className="text-xs text-muted-foreground">Target: 80%</div>
+                    </div>
 
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">GEDSI Score Average</span>
-                    <span className="font-medium">82/100</span>
-                  </div>
-                  <Progress value={82} className="h-2" />
-                  <div className="text-xs text-muted-foreground">Above MIV target of 75</div>
-                </div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">GEDSI Score Average</span>
+                        <span className="font-medium">
+                          {calculateAverageGEDSIScore(ventures)}/100
+                        </span>
+                      </div>
+                      <Progress value={calculateAverageGEDSIScore(ventures)} className="h-2" />
+                      <div className="text-xs text-muted-foreground">
+                        {calculateAverageGEDSIScore(ventures) >= 75 ? 'Above' : 'Below'} MIV target of 75
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

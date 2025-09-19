@@ -378,10 +378,10 @@ export default function DealFlowPage() {
           sustainabilityGoals: parseSustainabilityGoals(venture.stgGoals),
           aiInsights,
           metrics: {
-            jobsCreated: venture.gedsiMetricsSummary?.jobsCreated || Math.floor(Math.random() * 100) + 10,
-            communitiesServed: venture.gedsiMetricsSummary?.communityImpact || Math.floor(Math.random() * 50) + 5,
-            womenLeadership: venture.gedsiMetricsSummary?.womenLeadership || Math.floor(Math.random() * 40) + 30,
-            disabilityInclusive: venture.gedsiMetricsSummary?.disabilityInclusion > 20
+            jobsCreated: venture.jobsCreated || venture.gedsiMetricsSummary?.jobsCreated || 0,
+            communitiesServed: venture.totalBeneficiaries || venture.gedsiMetricsSummary?.communityImpact || 0,
+            womenLeadership: venture.womenEmpowered || venture.gedsiMetricsSummary?.womenLeadership || 0,
+            disabilityInclusive: (venture.disabilityInclusive || venture.gedsiMetricsSummary?.disabilityInclusion || 0) > 0
           }
         }
       })

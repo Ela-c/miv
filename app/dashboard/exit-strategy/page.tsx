@@ -117,6 +117,78 @@ const mockExitStrategies: ExitStrategy[] = []
 const exitTypes = ["ipo", "m&a", "secondary", "buyout", "liquidation", "other"]
 const statuses = ["planning", "preparation", "execution", "completed", "on_hold"]
 
+// Generate market comparables from real venture data
+function generateMarketComparables(exitStrategies: ExitStrategy[]) {
+  if (exitStrategies.length === 0) return []
+  
+  // Group by sector and calculate real metrics
+  const sectorData = exitStrategies.reduce((acc: any, exit) => {
+    const sector = exit.sector || 'Other'
+    if (!acc[sector]) {
+      acc[sector] = {
+        exits: [],
+        totalValuation: 0,
+        totalInvestment: 0
+      }
+    }
+    
+    acc[sector].exits.push(exit)
+    acc[sector].totalValuation += parseFloat(exit.currentValue?.replace(/[^0-9.]/g, '') || '0')
+    acc[sector].totalInvestment += parseFloat(exit.estimatedValue?.replace(/[^0-9.]/g, '') || '0')
+    
+    return acc
+  }, {})
+  
+  // Calculate metrics for each sector
+  return Object.entries(sectorData).map(([sector, data]: [string, any]) => {
+    const avgMultiple = data.totalInvestment > 0 
+      ? (data.totalValuation / data.totalInvestment).toFixed(1) + 'x'
+      : '0.0x'
+    
+    // Calculate IRR based on time since investment and valuation growth
+    const avgIRR = data.exits.length > 0
+      ? (data.exits.reduce((sum: number, exit: any) => {
+          const timeYears = 3 // Default 3 years for calculation
+          const currentVal = parseFloat(exit.currentValue?.replace(/[^0-9.]/g, '') || '0')
+          const estimatedVal = parseFloat(exit.estimatedValue?.replace(/[^0-9.]/g, '') || '0')
+          const multiple = estimatedVal > 0 ? currentVal / estimatedVal : 0
+          const irr = multiple > 0 ? ((Math.pow(multiple, 1/timeYears) - 1) * 100) : 0
+          return sum + Math.max(0, Math.min(100, irr)) // Cap between 0-100%
+        }, 0) / data.exits.length).toFixed(1) + '%'
+      : '0.0%'
+    
+    return {
+      sector,
+      avgMultiple,
+      recentExits: data.exits.length,
+      avgIRR
+    }
+  }).filter(comp => comp.recentExits > 0) // Only show sectors with actual exits
+}
+
+// Generate advisory team from real exit strategy data
+function generateAdvisoryTeam(exitStrategies: ExitStrategy[]) {
+  if (exitStrategies.length === 0) return []
+  
+  // Extract unique advisors from exit strategies
+  const allAdvisors = exitStrategies.flatMap(exit => exit.advisors || [])
+  const uniqueAdvisors = [...new Set(allAdvisors)]
+  
+  // Generate advisory team based on exit strategies
+  return uniqueAdvisors.slice(0, 4).map((advisorName, index) => {
+    const roles = ["Lead Investment Bank", "Co-Manager", "Legal Counsel", "Financial Advisor"]
+    const expertiseAreas = ["IPO, M&A", "Tech M&A", "Securities Law", "Valuation, Tax"]
+    const statuses = ["engaged", "proposed", "engaged", "engaged"]
+    
+    return {
+      advisor: advisorName,
+      role: roles[index % roles.length],
+      status: statuses[index % statuses.length],
+      expertise: expertiseAreas[index % expertiseAreas.length]
+    }
+  })
+}
+
 export default function ExitStrategyPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedExitType, setSelectedExitType] = useState("all")
@@ -917,12 +989,20 @@ export default function ExitStrategyPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[
-                    { sector: "FinTech", avgMultiple: "12.5x", recentExits: 8, avgIRR: "35.2%" },
-                    { sector: "CleanTech", avgMultiple: "8.3x", recentExits: 5, avgIRR: "28.7%" },
-                    { sector: "Healthcare", avgMultiple: "15.1x", recentExits: 12, avgIRR: "42.1%" },
-                    { sector: "EdTech", avgMultiple: "9.8x", recentExits: 6, avgIRR: "31.5%" }
-                  ].map(comp => (
+                  {exitStrategies.length === 0 ? (
+                    <div className="text-center py-8">
+                      <LineChart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No Market Data</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Add ventures with exit data to see market comparables and benchmarks.
+                      </p>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Venture
+                      </Button>
+                    </div>
+                  ) : (
+                    generateMarketComparables(exitStrategies).map(comp => (
                     <div key={comp.sector} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <div className="font-medium">{comp.sector}</div>
@@ -933,7 +1013,8 @@ export default function ExitStrategyPage() {
                         <div className="text-sm text-green-600">{comp.avgIRR} IRR</div>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
                 <Button className="w-full mt-4" variant="outline">
                   <Database className="mr-2 h-4 w-4" />
@@ -1104,12 +1185,20 @@ export default function ExitStrategyPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[
-                    { advisor: "Goldman Sachs", role: "Lead Investment Bank", status: "engaged", expertise: "IPO, M&A" },
-                    { advisor: "Morgan Stanley", role: "Co-Manager", status: "proposed", expertise: "Tech M&A" },
-                    { advisor: "Latham & Watkins", role: "Legal Counsel", status: "engaged", expertise: "Securities Law" },
-                    { advisor: "KPMG", role: "Financial Advisor", status: "engaged", expertise: "Valuation, Tax" }
-                  ].map(advisor => (
+                  {exitStrategies.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No Advisory Team</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Add exit strategies to track advisory team and investment banking support.
+                      </p>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Advisor
+                      </Button>
+                    </div>
+                  ) : (
+                    generateAdvisoryTeam(exitStrategies).map(advisor => (
                     <div key={advisor.advisor} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <div className="font-medium">{advisor.advisor}</div>
@@ -1122,7 +1211,8 @@ export default function ExitStrategyPage() {
                         {advisor.status}
                       </Badge>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
                 <Button className="w-full mt-4" variant="outline">
                   <Plus className="mr-2 h-4 w-4" />

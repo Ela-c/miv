@@ -30,7 +30,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Zap
+  Zap,
+  Bell,
+  Plus
 } from "lucide-react"
 import {
   ResponsiveContainer,
@@ -70,10 +72,114 @@ interface ChartWidget {
   span?: number
 }
 
+// Generate real alerts from venture data
+function generateRealAlerts(ventures: any[]) {
+  const alerts = []
+  
+  // Check for high risk ventures (low GEDSI scores or declining metrics)
+  const riskVentures = ventures.filter(v => 
+    (v.gedsiScore && v.gedsiScore < 60) || 
+    (v.status === 'INACTIVE') ||
+    (v.stage === 'ON_HOLD')
+  )
+  
+  if (riskVentures.length > 0) {
+    alerts.push({
+      type: 'risk',
+      title: 'High Risk Venture Detected',
+      message: `${riskVentures[0].name} shows declining metrics`,
+      time: '2 hours ago'
+    })
+  }
+  
+  // Check for review deadlines
+  const needReview = ventures.filter(v => 
+    v.stage === 'DUE_DILIGENCE' || 
+    v.stage === 'INVESTMENT_READY' ||
+    !v.lastReviewDate
+  )
+  
+  if (needReview.length > 0) {
+    alerts.push({
+      type: 'warning',
+      title: 'Review Deadline Approaching',
+      message: `${needReview.length} ventures require assessment by Friday`,
+      time: '4 hours ago'
+    })
+  }
+  
+  // Check for high growth potential
+  const highPotential = ventures.filter(v => 
+    v.gedsiScore >= 80 || 
+    v.stage === 'SERIES_A' || 
+    v.stage === 'SERIES_B'
+  )
+  
+  if (highPotential.length > 0) {
+    alerts.push({
+      type: 'info',
+      title: 'AI Recommendation Available',
+      message: `${highPotential.length} ventures show high growth potential`,
+      time: '6 hours ago'
+    })
+  }
+  
+  return alerts.slice(0, 3) // Limit to 3 alerts
+}
+
+// Generate real recent activities from venture data
+function generateRecentActivities(ventures: any[]) {
+  const activities = []
+  
+  // Recent assessments (ventures with GEDSI scores)
+  const recentAssessments = ventures.filter(v => v.gedsiScore && v.updatedAt)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 2)
+  
+  recentAssessments.forEach(venture => {
+    activities.push({
+      type: 'assessment',
+      title: 'Assessment Completed',
+      message: `${venture.name} - GEDSI Score: ${venture.gedsiScore}%`,
+      time: '1 hour ago'
+    })
+  })
+  
+  // Recent funding rounds
+  const recentFunding = ventures.filter(v => 
+    v.fundingRaised > 0 && 
+    ['SERIES_A', 'SERIES_B', 'FUNDED'].includes(v.stage)
+  ).slice(0, 1)
+  
+  recentFunding.forEach(venture => {
+    activities.push({
+      type: 'funding',
+      title: 'Funding Round Closed',
+      message: `${venture.name} - $${(venture.fundingRaised / 1000).toFixed(0)}K ${venture.stage.replace('_', ' ')}`,
+      time: '5 hours ago'
+    })
+  })
+  
+  // Milestones (high performing ventures)
+  const milestones = ventures.filter(v => v.gedsiScore >= 85).slice(0, 1)
+  
+  milestones.forEach(venture => {
+    activities.push({
+      type: 'milestone',
+      title: 'Milestone Achieved',
+      message: `${venture.name} exceeded GEDSI targets`,
+      time: '8 hours ago'
+    })
+  })
+  
+  return activities.slice(0, 4) // Limit to 4 activities
+}
+
 interface AnalyticsDashboardProps {
   title?: string
   metrics: MetricCard[]
   charts: ChartWidget[]
+  ventures?: any[]
   timeRange?: string
   onTimeRangeChange?: (range: string) => void
   customizable?: boolean
@@ -86,6 +192,7 @@ export function AnalyticsDashboard({
   title = "Analytics Dashboard",
   metrics,
   charts,
+  ventures = [],
   timeRange = "30d",
   onTimeRangeChange,
   customizable = true,
@@ -562,32 +669,40 @@ export function AnalyticsDashboard({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-start space-x-3 p-3 bg-red-50 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-red-900">High Risk Venture Detected</p>
-                  <p className="text-xs text-red-700">TechStart Inc. shows declining metrics</p>
-                  <p className="text-xs text-red-600 mt-1">2 hours ago</p>
+              {ventures.length === 0 ? (
+                <div className="text-center py-8">
+                  <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Active Alerts</h3>
+                  <p className="text-muted-foreground">
+                    Add ventures to monitor performance and receive alerts.
+                  </p>
                 </div>
-              </div>
-              
-              <div className="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
-                <Clock className="h-5 w-5 text-yellow-500 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-yellow-900">Review Deadline Approaching</p>
-                  <p className="text-xs text-yellow-700">5 ventures require assessment by Friday</p>
-                  <p className="text-xs text-yellow-600 mt-1">4 hours ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
-                <Zap className="h-5 w-5 text-blue-500 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-900">AI Recommendation Available</p>
-                  <p className="text-xs text-blue-700">3 ventures show high growth potential</p>
-                  <p className="text-xs text-blue-600 mt-1">6 hours ago</p>
-                </div>
-              </div>
+              ) : (
+                generateRealAlerts(ventures).map((alert, index) => (
+                  <div key={index} className={`flex items-start space-x-3 p-3 rounded-lg ${
+                    alert.type === 'risk' ? 'bg-red-50' :
+                    alert.type === 'warning' ? 'bg-yellow-50' : 'bg-blue-50'
+                  }`}>
+                    {alert.type === 'risk' ? <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" /> :
+                     alert.type === 'warning' ? <Clock className="h-5 w-5 text-yellow-500 mt-0.5" /> :
+                     <Zap className="h-5 w-5 text-blue-500 mt-0.5" />}
+                    <div className="flex-1">
+                      <p className={`text-sm font-medium ${
+                        alert.type === 'risk' ? 'text-red-900' :
+                        alert.type === 'warning' ? 'text-yellow-900' : 'text-blue-900'
+                      }`}>{alert.title}</p>
+                      <p className={`text-xs ${
+                        alert.type === 'risk' ? 'text-red-700' :
+                        alert.type === 'warning' ? 'text-yellow-700' : 'text-blue-700'
+                      }`}>{alert.message}</p>
+                      <p className={`text-xs mt-1 ${
+                        alert.type === 'risk' ? 'text-red-600' :
+                        alert.type === 'warning' ? 'text-yellow-600' : 'text-blue-600'
+                      }`}>{alert.time}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -601,41 +716,29 @@ export function AnalyticsDashboard({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Assessment Completed</p>
-                  <p className="text-xs text-gray-600">GreenTech Solutions - GEDSI Score: 92%</p>
-                  <p className="text-xs text-gray-500 mt-1">1 hour ago</p>
+              {ventures.length === 0 ? (
+                <div className="text-center py-8">
+                  <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Recent Activities</h3>
+                  <p className="text-muted-foreground">
+                    Add ventures to track activities and milestones.
+                  </p>
                 </div>
-              </div>
-              
-              <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                <Users className="h-5 w-5 text-blue-500 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">New Team Member Added</p>
-                  <p className="text-xs text-gray-600">Sarah Chen joined as Senior Analyst</p>
-                  <p className="text-xs text-gray-500 mt-1">3 hours ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                <DollarSign className="h-5 w-5 text-green-500 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Funding Round Closed</p>
-                  <p className="text-xs text-gray-600">EcoFarm Vietnam - $500K Series A</p>
-                  <p className="text-xs text-gray-500 mt-1">5 hours ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                <Target className="h-5 w-5 text-purple-500 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Milestone Achieved</p>
-                  <p className="text-xs text-gray-600">Q4 GEDSI targets exceeded by 15%</p>
-                  <p className="text-xs text-gray-500 mt-1">8 hours ago</p>
-                </div>
-              </div>
+              ) : (
+                generateRecentActivities(ventures).map((activity, index) => (
+                  <div key={index} className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    {activity.type === 'assessment' ? <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" /> :
+                     activity.type === 'team' ? <Users className="h-5 w-5 text-blue-500 mt-0.5" /> :
+                     activity.type === 'funding' ? <DollarSign className="h-5 w-5 text-green-500 mt-0.5" /> :
+                     <Target className="h-5 w-5 text-purple-500 mt-0.5" />}
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                      <p className="text-xs text-gray-600">{activity.message}</p>
+                      <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

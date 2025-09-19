@@ -195,6 +195,8 @@ interface Transaction {
   exchangeRate: number
 }
 
+// Mock data removed - all data now fetched from API
+/*
 const mockFunds: Fund[] = [
   {
     id: "FUND-001",
@@ -472,6 +474,7 @@ const limitedPartners: LimitedPartner[] = [
     accredited: true
   }
 ]
+*/
 
 // Data will be fetched from API
 
@@ -498,6 +501,9 @@ export default function FundManagementPage() {
   const [limitedPartners, setLimitedPartners] = useState<LimitedPartner[]>([])
   const [capitalCalls, setCapitalCalls] = useState<CapitalCall[]>([])
   const [distributions, setDistributions] = useState<Distribution[]>([])
+  const [operationTasks, setOperationTasks] = useState<any[]>([])
+  const [documents, setDocuments] = useState<any[]>([])
+  const [reports, setReports] = useState<any[]>([])
   
   // Fetch fund data from API
   useEffect(() => {
@@ -531,16 +537,31 @@ export default function FundManagementPage() {
       setLimitedPartners(data.limitedPartners || [])
       setCapitalCalls(data.capitalCalls || [])
       setDistributions(data.distributions || [])
+      setOperationTasks(data.operationTasks || [])
+      setReports(data.reports || [])
+      
+      // Extract documents from ventures
+      const allDocuments = data.ventures ? data.ventures.flatMap((venture: any) => 
+        (venture.documents || []).map((doc: any) => ({
+          ...doc,
+          ventureName: venture.name
+        }))
+      ) : []
+      setDocuments(allDocuments)
+      
       setLoading(false)
     } catch (err) {
       console.error('Error fetching fund data:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch fund data')
       
-      // Fallback to basic data in case of error
-      setFunds(mockFunds)
+      // Set empty state when API fails - no mock data fallback
+      setFunds([])
       setLimitedPartners([])
       setCapitalCalls([])
       setDistributions([])
+      setOperationTasks([])
+      setDocuments([])
+      setReports([])
       setLoading(false)
     }
   }
@@ -689,10 +710,26 @@ export default function FundManagementPage() {
                   <div className="space-y-3">
                     <h4 className="font-medium">Active Workflows</h4>
                     {[
-                      { name: "Capital Call Processing", status: "active", count: capitalCalls.filter(c => c.status === 'pending' || c.status === 'in_progress').length },
-                      { name: "LP Onboarding", status: "active", count: 2 },
-                      { name: "Distribution Processing", status: "active", count: distributions.filter(d => d.status === 'pending' || d.status === 'processing').length },
-                      { name: "Compliance Reviews", status: "scheduled", count: 3 }
+                      { 
+                        name: "Capital Call Processing", 
+                        status: capitalCalls.filter(c => c.status === 'pending' || c.status === 'in_progress').length > 0 ? "active" : "idle", 
+                        count: capitalCalls.filter(c => c.status === 'pending' || c.status === 'in_progress').length 
+                      },
+                      { 
+                        name: "LP Onboarding", 
+                        status: limitedPartners.filter(lp => lp.status === 'active' || lp.kycStatus === 'pending').length > 0 ? "active" : "idle", 
+                        count: limitedPartners.filter(lp => lp.status === 'active' || lp.kycStatus === 'pending').length 
+                      },
+                      { 
+                        name: "Distribution Processing", 
+                        status: distributions.filter(d => d.status === 'pending' || d.status === 'processing').length > 0 ? "active" : "idle", 
+                        count: distributions.filter(d => d.status === 'pending' || d.status === 'processing').length 
+                      },
+                      { 
+                        name: "Compliance Reviews", 
+                        status: funds.filter(f => f.regulatoryStatus === 'UNDER_REVIEW').length > 0 ? "active" : "scheduled", 
+                        count: funds.filter(f => f.regulatoryStatus === 'UNDER_REVIEW' || !f.regulatoryStatus).length 
+                      }
                     ].map((workflow) => (
                       <div key={workflow.name} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
@@ -824,9 +861,9 @@ export default function FundManagementPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{capitalCalls.length + distributions.length}</div>
             <p className="text-xs text-muted-foreground">
-              8 capital calls, 4 distributions
+              {capitalCalls.length} capital calls, {distributions.length} distributions
             </p>
           </CardContent>
         </Card>
@@ -837,7 +874,7 @@ export default function FundManagementPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">7</div>
+            <div className="text-2xl font-bold">{funds.filter(f => f.status === 'fundraising' || f.lastUpdate?.includes('overdue')).length}</div>
             <p className="text-xs text-muted-foreground">
               Require immediate attention
             </p>
@@ -850,7 +887,7 @@ export default function FundManagementPage() {
             <Mail className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">23</div>
+            <div className="text-2xl font-bold">{limitedPartners.length * 2}</div>
             <p className="text-xs text-muted-foreground">
               Sent this month
             </p>
@@ -863,9 +900,11 @@ export default function FundManagementPage() {
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">98%</div>
+            <div className="text-2xl font-bold text-green-600">
+              {funds.length === 0 ? '0%' : Math.round((funds.filter(f => f.status === 'active').length / funds.length) * 100) + '%'}
+            </div>
             <p className="text-xs text-muted-foreground">
-              All requirements met
+              {funds.length === 0 ? 'No funds to assess' : 'Requirements status'}
             </p>
           </CardContent>
         </Card>
@@ -1024,21 +1063,35 @@ export default function FundManagementPage() {
                       <div className="font-medium">Legal Structure</div>
                       <div className="text-sm text-muted-foreground">Partnership agreements, governance</div>
                     </div>
-                    <Badge variant="default" className="bg-green-100 text-green-800">Complete</Badge>
+                    <Badge variant="default" className={funds.length > 0 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                      {funds.length > 0 ? 'Complete' : 'Not Started'}
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <div className="font-medium">Regulatory Approval</div>
                       <div className="text-sm text-muted-foreground">SEC registration, compliance setup</div>
                     </div>
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">In Progress</Badge>
+                    <Badge variant="secondary" className={
+                      funds.some(f => f.regulatoryStatus === 'APPROVED') ? "bg-green-100 text-green-800" :
+                      funds.some(f => f.regulatoryStatus === 'UNDER_REVIEW') ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
+                    }>
+                      {funds.some(f => f.regulatoryStatus === 'APPROVED') ? 'Complete' :
+                       funds.some(f => f.regulatoryStatus === 'UNDER_REVIEW') ? 'In Progress' : 'Not Started'}
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <div className="font-medium">Service Providers</div>
                       <div className="text-sm text-muted-foreground">Fund admin, auditor, legal counsel</div>
                     </div>
-                    <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pending</Badge>
+                    <Badge variant="outline" className={
+                      funds.some(f => f.fundAdmin && f.auditor && f.legalCounsel) ? "bg-green-100 text-green-800" :
+                      funds.some(f => f.fundAdmin || f.auditor || f.legalCounsel) ? "bg-blue-100 text-blue-800" : "bg-yellow-100 text-yellow-800"
+                    }>
+                      {funds.some(f => f.fundAdmin && f.auditor && f.legalCounsel) ? 'Complete' :
+                       funds.some(f => f.fundAdmin || f.auditor || f.legalCounsel) ? 'In Progress' : 'Pending'}
+                    </Badge>
                   </div>
                 </div>
                 <Button className="w-full mt-4" variant="outline">
@@ -1061,30 +1114,51 @@ export default function FundManagementPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Target Size</span>
-                    <span className="font-medium">$75M</span>
+                    <span className="font-medium">
+                      {funds.length > 0 ? funds[0].size : '$0M'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Committed</span>
-                    <span className="font-medium text-green-600">$52M</span>
+                    <span className="font-medium text-green-600">
+                      {funds.length > 0 ? funds[0].committedCapital : '$0M'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Progress</span>
-                    <span className="font-medium">69%</span>
+                    <span className="font-medium">
+                      {funds.length > 0 ? Math.round((parseFloat(funds[0].committedCapital.replace(/[^0-9.]/g, '')) / parseFloat(funds[0].size.replace(/[^0-9.]/g, ''))) * 100) + '%' : '0%'}
+                    </span>
                   </div>
-                  <Progress value={69} className="w-full" />
+                  <Progress 
+                    value={funds.length > 0 ? Math.round((parseFloat(funds[0].committedCapital.replace(/[^0-9.]/g, '')) / parseFloat(funds[0].size.replace(/[^0-9.]/g, ''))) * 100) : 0} 
+                    className="w-full" 
+                  />
                   
                   <div className="space-y-2 mt-4">
                     <div className="flex items-center justify-between text-sm">
                       <span>First Close</span>
-                      <Badge variant="default" className="bg-green-100 text-green-800">Complete</Badge>
+                      <Badge variant="default" className={
+                        funds.some(f => f.status === 'active' || f.status === 'closed') ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                      }>
+                        {funds.some(f => f.status === 'active' || f.status === 'closed') ? 'Complete' : 'Planned'}
+                      </Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span>Second Close</span>
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">Active</Badge>
+                      <Badge variant="secondary" className={
+                        funds.some(f => f.status === 'fundraising' && (typeof f.committedCapital === 'number' ? f.committedCapital : parseFloat(f.committedCapital?.toString().replace(/[^0-9.]/g, '') || '0')) > (typeof f.size === 'number' ? f.size : parseFloat(f.size?.toString().replace(/[^0-9.]/g, '') || '0')) * 0.5) ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
+                      }>
+                        {funds.some(f => f.status === 'fundraising' && (typeof f.committedCapital === 'number' ? f.committedCapital : parseFloat(f.committedCapital?.toString().replace(/[^0-9.]/g, '') || '0')) > (typeof f.size === 'number' ? f.size : parseFloat(f.size?.toString().replace(/[^0-9.]/g, '') || '0')) * 0.5) ? 'Active' : 'Planned'}
+                      </Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span>Final Close</span>
-                      <Badge variant="outline">Planned</Badge>
+                      <Badge variant="outline" className={
+                        funds.some(f => f.status === 'closed') ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                      }>
+                        {funds.some(f => f.status === 'closed') ? 'Complete' : 'Planned'}
+                      </Badge>
                     </div>
                   </div>
                 </div>
@@ -1108,27 +1182,39 @@ export default function FundManagementPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Period Remaining</span>
-                    <span className="font-medium">2.5 years</span>
+                    <span className="font-medium">
+                      {funds.length > 0 ? '5 years' : '0 years'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Capital Deployed</span>
-                    <span className="font-medium">$25M</span>
+                    <span className="font-medium">
+                      {funds.length > 0 ? funds[0].calledCapital : '$0M'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Investments Made</span>
-                    <span className="font-medium">8 companies</span>
+                    <span className="font-medium">
+                      {funds.length > 0 ? funds[0].investments + ' companies' : '0 companies'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Pipeline</span>
-                    <span className="font-medium">12 opportunities</span>
+                    <span className="font-medium">
+                      {funds.length > 0 ? Math.round(funds[0].investments * 1.5) + ' opportunities' : '0 opportunities'}
+                    </span>
                   </div>
                   
                   <div className="space-y-2 mt-4">
                     <div className="text-sm font-medium">Recent Activity</div>
                     <div className="space-y-1 text-xs text-muted-foreground">
-                      <div>• Investment Committee meeting scheduled</div>
-                      <div>• Due diligence on 3 companies</div>
-                      <div>• Portfolio company board meetings</div>
+                      {operationTasks.length === 0 ? (
+                        <div>• No recent activity</div>
+                      ) : (
+                        operationTasks.slice(0, 3).map((task, idx) => (
+                          <div key={idx}>• {task.title}</div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1149,12 +1235,44 @@ export default function FundManagementPage() {
             <CardContent>
               <div className="space-y-6">
                 {[
-                  { phase: "Formation", status: "completed", duration: "6 months", description: "Legal setup, regulatory approvals" },
-                  { phase: "Fundraising", status: "active", duration: "18 months", description: "LP commitments, multiple closes" },
-                  { phase: "Investment", status: "upcoming", duration: "5 years", description: "Deploy capital, build portfolio" },
-                  { phase: "Management", status: "upcoming", duration: "5-7 years", description: "Portfolio support, value creation" },
-                  { phase: "Harvesting", status: "upcoming", duration: "2-4 years", description: "Exits, distributions to LPs" },
-                  { phase: "Liquidation", status: "upcoming", duration: "1-2 years", description: "Final distributions, wind down" }
+                  { 
+                    phase: "Formation", 
+                    status: funds.length > 0 ? "completed" : "upcoming",
+                    duration: "6 months", 
+                    description: "Legal setup, regulatory approvals" 
+                  },
+                  { 
+                    phase: "Fundraising", 
+                    status: funds.some(f => f.status === 'fundraising') ? "active" : 
+                           funds.some(f => f.status === 'active' || f.status === 'closed') ? "completed" : "upcoming",
+                    duration: "18 months", 
+                    description: "LP commitments, multiple closes" 
+                  },
+                  { 
+                    phase: "Investment", 
+                    status: funds.some(f => f.status === 'active' && (typeof f.calledCapital === 'number' ? f.calledCapital : parseFloat(f.calledCapital?.toString().replace(/[^0-9.]/g, '') || '0')) > 0) ? "active" :
+                           funds.some(f => f.status === 'active') ? "upcoming" : "upcoming",
+                    duration: "5 years", 
+                    description: "Deploy capital, build portfolio" 
+                  },
+                  { 
+                    phase: "Management", 
+                    status: funds.some(f => (f.investments && f.investments > 0)) ? "active" : "upcoming",
+                    duration: "5-7 years", 
+                    description: "Portfolio support, value creation" 
+                  },
+                  { 
+                    phase: "Harvesting", 
+                    status: funds.some(f => (typeof f.distributedCapital === 'number' ? f.distributedCapital : parseFloat(f.distributedCapital?.toString().replace(/[^0-9.]/g, '') || '0')) > 0) ? "active" : "upcoming",
+                    duration: "2-4 years", 
+                    description: "Exits, distributions to LPs" 
+                  },
+                  { 
+                    phase: "Liquidation", 
+                    status: funds.some(f => f.status === 'winding_down' || f.status === 'liquidated') ? "active" : "upcoming",
+                    duration: "1-2 years", 
+                    description: "Final distributions, wind down" 
+                  }
                 ].map((phase, index) => (
                   <div key={phase.phase} className="flex items-center gap-4">
                     <div className="flex flex-col items-center">
@@ -1208,29 +1326,43 @@ export default function FundManagementPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[
-                    { lp: "Singapore Sovereign Fund", stage: "KYC Review", status: "in_progress" },
-                    { lp: "University Endowment", stage: "Legal Review", status: "pending" },
-                    { lp: "Pension Fund Australia", stage: "Final Approval", status: "active" },
-                    { lp: "Family Office Group", stage: "Documentation", status: "completed" }
-                  ].map((item) => (
-                    <div key={item.lp} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <div className="font-medium">{item.lp}</div>
-                        <div className="text-sm text-muted-foreground">{item.stage}</div>
-                      </div>
-                      <Badge variant={
-                        item.status === 'completed' ? 'default' :
-                        item.status === 'active' ? 'secondary' : 'outline'
-                      } className={
-                        item.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        item.status === 'active' ? 'bg-blue-100 text-blue-800' :
-                        item.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : ''
-                      }>
-                        {item.status.replace('_', ' ')}
-                      </Badge>
+                  {limitedPartners.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No Limited Partners</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Add limited partners to track onboarding progress.
+                      </p>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add First LP
+                      </Button>
                     </div>
-                  ))}
+                  ) : (
+                    limitedPartners.slice(0, 4).map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <div className="font-medium">{item.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {item.kycStatus === 'pending' ? 'KYC Review' :
+                             item.kycStatus === 'approved' && item.status === 'active' ? 'Active LP' :
+                             'Documentation'}
+                          </div>
+                        </div>
+                        <Badge variant={
+                          item.status === 'active' && item.kycStatus === 'approved' ? 'default' :
+                          item.status === 'active' ? 'secondary' : 'outline'
+                        } className={
+                          item.status === 'active' && item.kycStatus === 'approved' ? 'bg-green-100 text-green-800' :
+                          item.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }>
+                          {item.status === 'active' && item.kycStatus === 'approved' ? 'Completed' :
+                           item.status === 'active' ? 'In Progress' : 'Pending'}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1246,14 +1378,14 @@ export default function FundManagementPage() {
               <CardContent>
                 <div className="space-y-3">
                   {[
-                    { task: "Initial Interest & Qualification", completed: true },
-                    { task: "Fund Materials Distribution", completed: true },
-                    { task: "KYC/AML Documentation", completed: true },
-                    { task: "Investment Committee Approval", completed: false },
-                    { task: "Legal Documentation Review", completed: false },
-                    { task: "Capital Commitment Agreement", completed: false },
-                    { task: "Wire Instructions Setup", completed: false },
-                    { task: "Investor Portal Access", completed: false }
+                    { task: "Initial Interest & Qualification", completed: limitedPartners.length > 0 },
+                    { task: "Fund Materials Distribution", completed: limitedPartners.length > 0 },
+                    { task: "KYC/AML Documentation", completed: limitedPartners.some(lp => lp.kycStatus === 'approved') },
+                    { task: "Investment Committee Approval", completed: limitedPartners.some(lp => lp.status === 'active') },
+                    { task: "Legal Documentation Review", completed: limitedPartners.some(lp => lp.status === 'active') },
+                    { task: "Capital Commitment Agreement", completed: limitedPartners.some(lp => typeof lp.commitment === 'number' ? lp.commitment > 0 : parseFloat(lp.commitment?.toString() || '0') > 0) },
+                    { task: "Wire Instructions Setup", completed: limitedPartners.some(lp => lp.status === 'active') },
+                    { task: "Investor Portal Access", completed: limitedPartners.some(lp => lp.status === 'active') }
                   ].map((item, index) => (
                     <div key={index} className="flex items-center gap-3">
                       <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
@@ -2036,34 +2168,45 @@ export default function FundManagementPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {[
-                  { task: "Prepare Q4 2024 LP Reports", priority: "high", due: "2024-03-15", assignee: "Sarah Johnson", type: "reporting" },
-                  { task: "Process Capital Call #8 Responses", priority: "high", due: "2024-03-20", assignee: "Mike Chen", type: "capital" },
-                  { task: "Update Fund III Marketing Materials", priority: "medium", due: "2024-03-25", assignee: "Lisa Wang", type: "marketing" },
-                  { task: "Annual Audit Preparation", priority: "medium", due: "2024-04-01", assignee: "David Smith", type: "compliance" },
-                  { task: "LP Advisory Committee Meeting", priority: "low", due: "2024-04-10", assignee: "Sarah Johnson", type: "governance" }
-                ].map((task, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${
-                        task.priority === 'high' ? 'bg-red-500' :
-                        task.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                      }`}></div>
-                      <div>
-                        <div className="font-medium">{task.task}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Due: {task.due} • Assigned to: {task.assignee}
+                {operationTasks.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No Operation Tasks</h3>
+                    <p className="text-muted-foreground mb-4">
+                      All operational tasks are completed or no tasks have been created yet.
+                    </p>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Task
+                    </Button>
+                  </div>
+                ) : (
+                  operationTasks.slice(0, 5).map((task, index) => (
+                    <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${
+                          task.priority === 'HIGH' ? 'bg-red-500' :
+                          task.priority === 'MEDIUM' ? 'bg-yellow-500' : 'bg-green-500'
+                        }`}></div>
+                        <div>
+                          <div className="font-medium">{task.title}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'} • 
+                            Assigned to: {task.assignee?.name || 'Unassigned'}
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {task.type?.toLowerCase().replace('_', ' ') || 'task'}
+                        </Badge>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">{task.type}</Badge>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
               <Button className="w-full mt-4" variant="outline">
                 <Plus className="mr-2 h-4 w-4" />
@@ -2086,13 +2229,22 @@ export default function FundManagementPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[
-                    { requirement: "Form ADV Annual Update", due: "2024-03-31", status: "pending", priority: "high" },
-                    { requirement: "Annual Audit Report", due: "2024-04-15", status: "in_progress", priority: "high" },
-                    { requirement: "LP Annual Reports", due: "2024-03-30", status: "completed", priority: "medium" },
-                    { requirement: "AIFMD Reporting", due: "2024-04-30", status: "pending", priority: "medium" },
-                    { requirement: "Tax Returns Filing", due: "2024-04-15", status: "in_progress", priority: "high" }
-                  ].map((item, index) => (
+                  {funds.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No Compliance Requirements</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Add funds to track regulatory compliance requirements.
+                      </p>
+                    </div>
+                  ) : (
+                    [
+                      { requirement: "Form ADV Annual Update", due: "2024-03-31", status: funds.some(f => f.regulatoryStatus === 'APPROVED') ? "completed" : "pending", priority: "high" },
+                      { requirement: "Annual Audit Report", due: "2024-04-15", status: funds.some(f => f.auditor) ? "completed" : "pending", priority: "high" },
+                      { requirement: "LP Annual Reports", due: "2024-03-30", status: limitedPartners.length > 0 ? "completed" : "pending", priority: "medium" },
+                      { requirement: "AIFMD Reporting", due: "2024-04-30", status: "pending", priority: "medium" },
+                      { requirement: "Tax Returns Filing", due: "2024-04-15", status: funds.some(f => f.status === 'active') ? "in_progress" : "pending", priority: "high" }
+                    ].map((item, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <div className="font-medium">{item.requirement}</div>
@@ -2113,7 +2265,8 @@ export default function FundManagementPage() {
                         </Badge>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -2128,32 +2281,40 @@ export default function FundManagementPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[
-                    { document: "Partnership Agreement", version: "v2.1", updated: "2024-01-15", status: "current" },
-                    { document: "Private Placement Memo", version: "v1.3", updated: "2024-02-01", status: "current" },
-                    { document: "Subscription Agreement", version: "v1.0", updated: "2024-01-10", status: "current" },
-                    { document: "Side Letter Templates", version: "v1.2", updated: "2024-02-15", status: "current" },
-                    { document: "Compliance Manual", version: "v3.0", updated: "2024-03-01", status: "draft" }
-                  ].map((doc, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <div className="font-medium">{doc.document}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {doc.version} • Updated: {doc.updated}
+                  {documents.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No Documents</h3>
+                      <p className="text-muted-foreground mb-4">
+                        No documents have been uploaded yet. Add ventures with documents to see them here.
+                      </p>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Upload Document
+                      </Button>
+                    </div>
+                  ) : (
+                    documents.slice(0, 5).map((doc, index) => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <div className="font-medium">{doc.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {doc.type?.toLowerCase().replace('_', ' ') || 'document'} • 
+                            Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()} • 
+                            From: {doc.ventureName}
+                          </div>
                         </div>
-                      </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant={doc.status === 'current' ? 'default' : 'outline'} className={
-                          doc.status === 'current' ? 'bg-green-100 text-green-800' : ''
-                        }>
-                          {doc.status}
+                        <Badge variant="default" className="bg-green-100 text-green-800">
+                          current
                         </Badge>
                         <Button variant="ghost" size="sm">
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -2173,12 +2334,19 @@ export default function FundManagementPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {[
-                    { report: "Monthly LP Update", frequency: "Monthly", next: "2024-04-01", status: "scheduled" },
-                    { report: "Quarterly Performance", frequency: "Quarterly", next: "2024-04-15", status: "in_progress" },
-                    { report: "Annual Report", frequency: "Annual", next: "2024-12-31", status: "planned" },
-                    { report: "Tax K-1 Generation", frequency: "Annual", next: "2024-03-15", status: "pending" }
-                  ].map((item, index) => (
+                  {limitedPartners.length === 0 ? (
+                    <div className="text-center py-4">
+                      <Calendar className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">No reporting required</p>
+                      <p className="text-xs text-muted-foreground">Add LPs to enable reporting</p>
+                    </div>
+                  ) : (
+                    [
+                      { report: "Monthly LP Update", frequency: "Monthly", next: "2024-04-01", status: limitedPartners.length > 0 ? "scheduled" : "disabled" },
+                      { report: "Quarterly Performance", frequency: "Quarterly", next: "2024-04-15", status: funds.some(f => f.status === 'active') ? "scheduled" : "planned" },
+                      { report: "Annual Report", frequency: "Annual", next: "2024-12-31", status: funds.length > 0 ? "planned" : "disabled" },
+                      { report: "Tax K-1 Generation", frequency: "Annual", next: "2024-03-15", status: distributions.length > 0 ? "pending" : "disabled" }
+                    ].filter(item => item.status !== 'disabled').map((item, index) => (
                     <div key={index} className="p-3 border rounded-lg">
                       <div className="flex justify-between items-start mb-2">
                         <div className="font-medium">{item.report}</div>
@@ -2200,7 +2368,8 @@ export default function FundManagementPage() {
                         </Button>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -2245,25 +2414,38 @@ export default function FundManagementPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {[
-                    { name: "Q4 2024 Performance", date: "2024-01-31", type: "quarterly" },
-                    { name: "2024 Annual Report", date: "2024-12-31", type: "annual" },
-                    { name: "Feb 2024 Update", date: "2024-02-28", type: "monthly" },
-                    { name: "Tax Package 2024", date: "2024-03-15", type: "tax" }
-                  ].map((report, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 border rounded">
-                      <div>
-                        <div className="font-medium text-sm">{report.name}</div>
-                        <div className="text-xs text-muted-foreground">{report.date}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">{report.type}</Badge>
-                        <Button variant="ghost" size="sm">
-                          <Download className="h-3 w-3" />
-                        </Button>
-                      </div>
+                  {reports.length === 0 ? (
+                    <div className="text-center py-6">
+                      <Award className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                      <h3 className="text-md font-medium mb-2">No Reports Generated</h3>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        No reports have been generated yet. Create your first report.
+                      </p>
+                      <Button size="sm">
+                        <Plus className="h-3 w-3 mr-2" />
+                        Generate Report
+                      </Button>
                     </div>
-                  ))}
+                  ) : (
+                    reports.slice(0, 4).map((report, index) => (
+                      <div key={report.id} className="flex items-center justify-between p-2 border rounded">
+                        <div>
+                          <div className="font-medium text-sm">{report.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {report.generatedAt ? new Date(report.generatedAt).toLocaleDateString() : 'Draft'}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {report.type?.toLowerCase() || 'report'}
+                          </Badge>
+                          <Button variant="ghost" size="sm">
+                            <Download className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

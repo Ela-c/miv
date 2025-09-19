@@ -8,28 +8,42 @@ datasource db {
 }
 
 model User {
-  id                       String         @id @default(cuid())
-  email                    String         @unique
+  id                       String              @id @default(cuid())
+  email                    String              @unique
   name                     String?
   image                    String?
   passwordHash             String?
-  role                     UserRole       @default(USER)
+  role                     UserRole            @default(USER)
   organization             String?
   permissions              Json?
   emailVerified            DateTime?
-  emailVerificationToken   String?        @unique
+  emailVerificationToken   String?             @unique
   emailVerificationExpires DateTime?
   notificationPreferences  Json?
-  createdAt                DateTime       @default(now())
-  updatedAt                DateTime       @updatedAt
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
   accounts                 Account[]
   activities               Activity[]
+  announcements            Announcement[]      @relation("AnnouncementAuthor")
+  dashboardsCreated        CustomDashboard[]   @relation("DashboardCreator")
+  createdFundTasks         FundOperationTask[] @relation("TaskCreator")
+  assignedFundTasks        FundOperationTask[] @relation("TaskAssignee")
+  assignedWorkflows        FundWorkflow[]      @relation("WorkflowAssignee")
+  managedFunds             Fund[]              @relation("FundManager")
   gedsiMetrics             GEDSIMetric[]
   notifications            Notification[]
+  ledProjects              Project[]           @relation("ProjectLead")
+  createdReports           Report[]            @relation("ReportCreator")
   sessions                 Session[]
-  assignedVentures         Venture[]      @relation("AssignedTo")
-  createdVentures          Venture[]      @relation("CreatedBy")
+  createdTasks             Task[]              @relation("TaskCreator")
+  assignedTasks            Task[]              @relation("TaskAssignee")
+  organizedEvents          TeamEvent[]         @relation("EventOrganizer")
+  createdVentures          Venture[]           @relation("CreatedBy")
+  assignedVentures         Venture[]           @relation("AssignedTo")
   workflowsCreated         Workflow[]
+  sharedDashboards         CustomDashboard[]   @relation("DashboardShared")
+  eventAttendances         TeamEvent[]         @relation("EventAttendees")
+  projectMemberships       Project[]           @relation("ProjectMembers")
 
   @@map("users")
 }
@@ -67,18 +81,15 @@ model Venture {
   challenges           String?
   supportNeeded        String?
   timeline             String?
-  
-  // Calculated fields for GEDSI and Social Impact
-  gedsiScore           Float?            // Calculated GEDSI alignment score (0-100)
-  socialImpactScore    Float?            // Calculated social impact score (0-100)
-  gedsiComplianceRate  Float?            // GEDSI metrics completion rate (0-100)
-  totalBeneficiaries   Int?              // Total calculated beneficiaries
-  jobsCreated          Int?              // Total calculated jobs created
-  womenEmpowered       Int?              // Total calculated women empowered
-  disabilityInclusive  Int?              // Total calculated disability inclusive metrics
-  youthEngaged         Int?              // Total calculated youth engaged
-  calculatedAt         DateTime?         // When calculations were last updated
-  
+  gedsiScore           Float?
+  socialImpactScore    Float?
+  gedsiComplianceRate  Float?
+  totalBeneficiaries   Int?
+  jobsCreated          Int?
+  womenEmpowered       Int?
+  disabilityInclusive  Int?
+  youthEngaged         Int?
+  calculatedAt         DateTime?
   status               VentureStatus     @default(ACTIVE)
   stage                VentureStage      @default(INTAKE)
   intakeDate           DateTime?
@@ -95,9 +106,11 @@ model Venture {
   activities           Activity[]
   capitalActivities    CapitalActivity[]
   documents            Document[]
+  fundInvestments      FundInvestment[]
   gedsiMetrics         GEDSIMetric[]
-  assignedTo           User?             @relation("AssignedTo", fields: [assignedToId], references: [id])
+  projects             Project[]
   createdBy            User              @relation("CreatedBy", fields: [createdById], references: [id])
+  assignedTo           User?             @relation("AssignedTo", fields: [assignedToId], references: [id])
 
   @@map("ventures")
 }
@@ -117,8 +130,8 @@ model GEDSIMetric {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   createdById      String
-  createdBy        User          @relation(fields: [createdById], references: [id])
   venture          Venture       @relation(fields: [ventureId], references: [id], onDelete: Cascade)
+  createdBy        User          @relation(fields: [createdById], references: [id])
 
   @@map("gedsi_metrics")
 }
@@ -146,8 +159,8 @@ model Activity {
   description String?
   metadata    Json?
   createdAt   DateTime     @default(now())
-  user        User         @relation(fields: [userId], references: [id])
   venture     Venture?     @relation(fields: [ventureId], references: [id])
+  user        User         @relation(fields: [userId], references: [id])
 
   @@map("activities")
 }
@@ -285,6 +298,352 @@ model WorkflowRun {
   @@map("workflow_runs")
 }
 
+model CustomDashboard {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String
+  widgets     Json
+  isPublic    Boolean  @default(false)
+  isFavorite  Boolean  @default(false)
+  viewCount   Int      @default(0)
+  tags        Json?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   User     @relation("DashboardCreator", fields: [createdById], references: [id])
+  sharedWith  User[]   @relation("DashboardShared")
+
+  @@map("custom_dashboards")
+}
+
+model Fund {
+  id                 String               @id @default(cuid())
+  name               String
+  vintage            String
+  size               Float
+  committedCapital   Float
+  calledCapital      Float                @default(0)
+  distributedCapital Float                @default(0)
+  netAssetValue      Float                @default(0)
+  irr                Float?
+  tvpi               Float?
+  dpi                Float?
+  moic               Float?
+  status             FundStatus           @default(FUNDRAISING)
+  fundType           FundType             @default(VENTURE)
+  geography          String?
+  sectors            Json?
+  investmentPeriod   String?
+  fundTerm           String?
+  managementFee      Float?
+  carriedInterest    Float?
+  hurdle             Float?
+  benchmark          String?
+  aum                Float?
+  dryPowder          Float?
+  leverage           Float                @default(0)
+  esg                Boolean              @default(false)
+  regulatoryStatus   String?
+  fundAdmin          String?
+  auditor            String?
+  legalCounsel       String?
+  primeBroker        String?
+  managerId          String
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  capitalCalls       CapitalCall[]
+  distributions      Distribution[]
+  investments        FundInvestment[]
+  lifecyclePhases    FundLifecyclePhase[] @relation("FundLifecycle")
+  tasks              FundOperationTask[]  @relation("FundTasks")
+  workflows          FundWorkflow[]       @relation("FundWorkflows")
+  manager            User                 @relation("FundManager", fields: [managerId], references: [id])
+  limitedPartners    LimitedPartner[]
+  reports            Report[]             @relation("FundReports")
+
+  @@map("funds")
+}
+
+model LimitedPartner {
+  id               String     @id @default(cuid())
+  name             String
+  type             LPType
+  commitment       Float
+  called           Float      @default(0)
+  distributed      Float      @default(0)
+  nav              Float      @default(0)
+  irr              Float?
+  tvpi             Float?
+  dpi              Float?
+  country          String
+  currency         String     @default("USD")
+  contactPerson    String?
+  email            String?
+  phone            String?
+  status           LPStatus   @default(ACTIVE)
+  investmentDate   DateTime?
+  lastCapitalCall  DateTime?
+  lastDistribution DateTime?
+  riskRating       RiskRating @default(MEDIUM)
+  kycStatus        KYCStatus  @default(PENDING)
+  accredited       Boolean    @default(false)
+  fundId           String
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  fund             Fund       @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@map("limited_partners")
+}
+
+model CapitalCall {
+  id                 String            @id @default(cuid())
+  callNumber         String
+  amount             Float
+  dueDate            DateTime
+  status             CapitalCallStatus @default(PENDING)
+  purpose            String
+  investments        Json?
+  expenses           Float?
+  interestRate       Float             @default(0)
+  gracePeriod        Int               @default(30)
+  defaultPenalty     Float             @default(0)
+  wireInstructions   Boolean           @default(false)
+  noticeDate         DateTime?
+  remindersSent      Int               @default(0)
+  documentsGenerated Boolean           @default(false)
+  lpsResponded       Int               @default(0)
+  totalLps           Int
+  fundId             String
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  fund               Fund              @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@map("capital_calls")
+}
+
+model Distribution {
+  id                 String             @id @default(cuid())
+  distributionNumber String
+  amount             Float
+  date               DateTime
+  type               DistributionType
+  status             DistributionStatus @default(PENDING)
+  source             String?
+  sourceVentures     Json?
+  taxImplications    String?
+  withholding        Float              @default(0)
+  currency           String             @default("USD")
+  exchangeRate       Float              @default(1.0)
+  paymentMethod      String?
+  taxReporting       Boolean            @default(false)
+  k1Generated        Boolean            @default(false)
+  recordDate         DateTime?
+  exDate             DateTime?
+  lpsPaid            Int                @default(0)
+  totalLps           Int
+  fundId             String
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  fund               Fund               @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@map("distributions")
+}
+
+model FundInvestment {
+  id           String    @id @default(cuid())
+  amount       Float
+  date         DateTime
+  type         String
+  status       String
+  exitDate     DateTime?
+  exitAmount   Float?
+  exitMultiple Float?
+  currentValue Float?
+  notes        String?
+  fundId       String
+  ventureId    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  venture      Venture?  @relation(fields: [ventureId], references: [id])
+  fund         Fund      @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@map("fund_investments")
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(NOT_STARTED)
+  priority    Priority      @default(MEDIUM)
+  progress    Int           @default(0)
+  dueDate     DateTime?
+  startDate   DateTime?
+  completedAt DateTime?
+  budget      Float?
+  tags        Json?
+  metadata    Json?
+  leadId      String
+  ventureId   String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  venture     Venture?      @relation(fields: [ventureId], references: [id])
+  lead        User          @relation("ProjectLead", fields: [leadId], references: [id])
+  tasks       Task[]
+  members     User[]        @relation("ProjectMembers")
+
+  @@map("projects")
+}
+
+model Task {
+  id             String     @id @default(cuid())
+  name           String
+  description    String?
+  status         TaskStatus @default(TODO)
+  priority       Priority   @default(MEDIUM)
+  dueDate        DateTime?
+  completedAt    DateTime?
+  estimatedHours Int?
+  actualHours    Int?
+  tags           Json?
+  notes          String?
+  projectId      String
+  assignedToId   String?
+  createdById    String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  createdBy      User       @relation("TaskCreator", fields: [createdById], references: [id])
+  assignedTo     User?      @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  project        Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks_A        Task[]     @relation("TaskDependencies")
+  tasks_B        Task[]     @relation("TaskDependencies")
+
+  @@map("tasks")
+}
+
+model Announcement {
+  id        String    @id @default(cuid())
+  title     String
+  content   String
+  priority  Priority  @default(MEDIUM)
+  isActive  Boolean   @default(true)
+  expiresAt DateTime?
+  authorId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  author    User      @relation("AnnouncementAuthor", fields: [authorId], references: [id])
+
+  @@map("announcements")
+}
+
+model TeamEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  time        String?
+  location    String?
+  isAllDay    Boolean  @default(false)
+  isRecurring Boolean  @default(false)
+  recurrence  Json?
+  organizerId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  organizer   User     @relation("EventOrganizer", fields: [organizerId], references: [id])
+  attendees   User[]   @relation("EventAttendees")
+
+  @@map("team_events")
+}
+
+model FundWorkflow {
+  id          String              @id @default(cuid())
+  name        String
+  type        FundWorkflowType
+  status      WorkflowStatus      @default(PENDING)
+  priority    Priority            @default(MEDIUM)
+  description String?
+  dueDate     DateTime?
+  startDate   DateTime?
+  completedAt DateTime?
+  assignedTo  String?
+  fundId      String?
+  metadata    Json?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  tasks       FundOperationTask[] @relation("WorkflowTasks")
+  fund        Fund?               @relation("FundWorkflows", fields: [fundId], references: [id])
+  assignee    User?               @relation("WorkflowAssignee", fields: [assignedTo], references: [id])
+
+  @@map("fund_workflows")
+}
+
+model FundLifecyclePhase {
+  id          String             @id @default(cuid())
+  phase       LifecyclePhaseType @map("phase_name")
+  status      LifecycleStatus    @default(NOT_STARTED)
+  startDate   DateTime?
+  completedAt DateTime?
+  duration    String?
+  description String?
+  progress    Int                @default(0)
+  milestones  Json?
+  fundId      String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  fund        Fund               @relation("FundLifecycle", fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@map("fund_lifecycle_phases")
+}
+
+model FundOperationTask {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  type        FundTaskType   @default(OPERATIONAL)
+  status      FundTaskStatus @default(PENDING)
+  priority    Priority       @default(MEDIUM)
+  dueDate     DateTime?
+  completedAt DateTime?
+  assignedTo  String?
+  createdBy   String
+  fundId      String?
+  workflowId  String?
+  tags        Json?
+  attachments Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  workflow    FundWorkflow?  @relation("WorkflowTasks", fields: [workflowId], references: [id])
+  fund        Fund?          @relation("FundTasks", fields: [fundId], references: [id])
+  creator     User           @relation("TaskCreator", fields: [createdBy], references: [id])
+  assignee    User?          @relation("TaskAssignee", fields: [assignedTo], references: [id])
+
+  @@map("fund_operation_tasks")
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  name        String
+  type        ReportType
+  status      ReportStatus @default(DRAFT)
+  description String?
+  filePath    String?
+  fileSize    Int?
+  generatedAt DateTime?
+  publishedAt DateTime?
+  periodStart DateTime?
+  periodEnd   DateTime?
+  createdBy   String
+  fundId      String?
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  fund        Fund?        @relation("FundReports", fields: [fundId], references: [id])
+  creator     User         @relation("ReportCreator", fields: [createdBy], references: [id])
+
+  @@map("reports")
+}
+
 enum UserRole {
   ADMIN
   MANAGER
@@ -391,4 +750,182 @@ enum WorkflowRunStatus {
   SUCCEEDED
   FAILED
   CANCELLED
+}
+
+enum FundStatus {
+  FUNDRAISING
+  ACTIVE
+  CLOSED
+  WINDING_DOWN
+  LIQUIDATED
+}
+
+enum FundType {
+  VENTURE
+  GROWTH
+  BUYOUT
+  IMPACT
+  DEBT
+  HYBRID
+}
+
+enum LPType {
+  PENSION
+  ENDOWMENT
+  FOUNDATION
+  INSURANCE
+  SOVEREIGN
+  FAMILY_OFFICE
+  FUND_OF_FUNDS
+  CORPORATE
+  INDIVIDUAL
+  DEVELOPMENT
+  GOVERNMENT
+}
+
+enum LPStatus {
+  ACTIVE
+  DEFAULTED
+  TRANSFERRED
+  WITHDRAWN
+  SUSPENDED
+}
+
+enum RiskRating {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum KYCStatus {
+  APPROVED
+  PENDING
+  EXPIRED
+  REJECTED
+}
+
+enum CapitalCallStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  CANCELLED
+}
+
+enum DistributionType {
+  DIVIDEND
+  CAPITAL_GAIN
+  RETURN_OF_CAPITAL
+  EXIT
+  INTERIM
+}
+
+enum DistributionStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum ProjectStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum FundWorkflowType {
+  CAPITAL_CALL
+  DISTRIBUTION
+  LP_ONBOARDING
+  COMPLIANCE_REVIEW
+  REPORTING
+  FUND_FORMATION
+  INVESTMENT_COMMITTEE
+  PORTFOLIO_REVIEW
+  AUDIT
+  TAX_PREPARATION
+  FUNDRAISING
+  OTHER
+}
+
+enum WorkflowStatus {
+  PENDING
+  ACTIVE
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum LifecyclePhaseType {
+  FORMATION
+  FUNDRAISING
+  INVESTMENT
+  MANAGEMENT
+  HARVESTING
+  LIQUIDATION
+}
+
+enum LifecycleStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum FundTaskType {
+  OPERATIONAL
+  COMPLIANCE
+  REPORTING
+  INVESTMENT
+  LP_RELATIONS
+  ADMINISTRATIVE
+  LEGAL
+  FINANCIAL
+}
+
+enum FundTaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum ReportType {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  TAX
+  COMPLIANCE
+  PERFORMANCE
+  LP_UPDATE
+  PORTFOLIO
+  CUSTOM
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  PUBLISHED
+  ARCHIVED
 }

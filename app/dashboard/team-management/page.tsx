@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,192 +39,184 @@ import {
 } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-// --- Dummy Data ---
+// --- Database Types ---
 interface TeamMember {
   id: string
   name: string
   role: string
   email: string
-  phone: string
-  skills: string[]
-  bio: string
-  avatar: string
-  projects: string[]
+  organization?: string
+  image?: string
+  emailVerified?: Date | null
+  createdAt: Date
+  updatedAt: Date
+  ledProjects: { id: string; name: string; status: string }[]
+  projectMemberships: { id: string; name: string; status: string }[]
+  assignedTasks: { id: string; name: string; status: string; dueDate?: Date | null }[]
+  _count: {
+    ledProjects: number
+    projectMemberships: number
+    assignedTasks: number
+  }
 }
 
 interface Project {
   id: string
   name: string
-  status: "Not Started" | "In Progress" | "Completed" | "On Hold"
+  description?: string
+  status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "ON_HOLD" | "CANCELLED"
+  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT"
   progress: number
-  dueDate: string
-  lead: string
-  tasks: { id: string; name: string; assignedTo: string; completed: boolean }[]
-  members: string[] // Member IDs
+  dueDate?: Date | null
+  startDate?: Date | null
+  completedAt?: Date | null
+  lead: {
+    id: string
+    name: string
+    email: string
+    role: string
+    image?: string
+  }
+  members: {
+    id: string
+    name: string
+    email: string
+    role: string
+    image?: string
+  }[]
+  tasks?: {
+    id: string
+    name: string
+    status: string
+    priority: string
+    dueDate?: Date | null
+    assignedTo?: { id: string; name: string } | null
+  }[]
+  venture?: {
+    id: string
+    name: string
+    sector: string
+  } | null
+  _count: {
+    tasks: number
+    members: number
+  }
 }
 
 interface Announcement {
   id: string
   title: string
   content: string
-  date: string
-  author: string
+  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT"
+  isActive: boolean
+  expiresAt?: Date | null
+  createdAt: Date
+  updatedAt: Date
+  author: {
+    id: string
+    name: string
+    email: string
+    role: string
+    image?: string
+  }
 }
 
-interface Event {
+interface TeamEvent {
   id: string
   title: string
-  date: string
-  time: string
-  location: string
-  attendees: string[] // Member IDs
+  description?: string
+  date: Date
+  time?: string
+  location?: string
+  isAllDay: boolean
+  isRecurring: boolean
+  recurrence?: any
+  createdAt: Date
+  updatedAt: Date
+  organizer: {
+    id: string
+    name: string
+    email: string
+    role: string
+    image?: string
+  }
+  attendees: {
+    id: string
+    name: string
+    email: string
+    role: string
+    image?: string
+  }[]
+  _count: {
+    attendees: number
+  }
 }
 
-const initialTeamMembers: TeamMember[] = [
-  {
-    id: "TM001",
-    name: "Alice Johnson",
-    role: "Project Manager",
-    email: "alice.j@example.com",
-    phone: "+1234567890",
-    skills: ["Project Management", "Leadership", "Communication"],
-    bio: "Experienced project manager with a strong track record of leading cross-functional teams to deliver successful projects on time and within budget.",
-    avatar: "/placeholder.svg?height=100&width=100",
-    projects: ["PR001", "PR003"],
-  },
-  {
-    id: "TM002",
-    name: "Bob Williams",
-    role: "Software Engineer",
-    email: "bob.w@example.com",
-    phone: "+1987654321",
-    skills: ["React", "Node.js", "Database Design"],
-    bio: "Full-stack software engineer passionate about building scalable and efficient web applications. Always eager to learn new technologies.",
-    avatar: "/placeholder.svg?height=100&width=100",
-    projects: ["PR001", "PR002"],
-  },
-  {
-    id: "TM003",
-    name: "Carol Davis",
-    role: "UX Designer",
-    email: "carol.d@example.com",
-    phone: "+1122334455",
-    skills: ["UI/UX Design", "Figma", "User Research"],
-    bio: "Creative UX designer focused on crafting intuitive and delightful user experiences. Believes in user-centered design principles.",
-    avatar: "/placeholder.svg?height=100&width=100",
-    projects: ["PR002"],
-  },
-  {
-    id: "TM004",
-    name: "David Lee",
-    role: "Data Analyst",
-    email: "david.l@example.com",
-    phone: "+1556677889",
-    skills: ["Data Analysis", "SQL", "Python", "Tableau"],
-    bio: "Detail-oriented data analyst with expertise in extracting insights from complex datasets to drive business decisions.",
-    avatar: "/placeholder.svg?height=100&width=100",
-    projects: ["PR003"],
-  },
-]
+// API Functions
+const fetchTeamMembers = async (search = '', role = '') => {
+  const params = new URLSearchParams()
+  if (search) params.append('search', search)
+  if (role) params.append('role', role)
+  params.append('limit', '50')
+  
+  const response = await fetch(`/api/team/members?${params}`)
+  if (!response.ok) throw new Error('Failed to fetch team members')
+  const data = await response.json()
+  return data.members
+}
 
-const initialProjects: Project[] = [
-  {
-    id: "PR001",
-    name: "Dashboard Redesign",
-    status: "In Progress",
-    progress: 60,
-    dueDate: "2024-03-31",
-    lead: "Alice Johnson",
-    tasks: [
-      { id: "T001", name: "Gather user requirements", assignedTo: "Carol Davis", completed: true },
-      { id: "T002", name: "Design wireframes", assignedTo: "Carol Davis", completed: true },
-      { id: "T003", name: "Develop frontend components", assignedTo: "Bob Williams", completed: false },
-      { id: "T004", name: "Integrate backend APIs", assignedTo: "Bob Williams", completed: false },
-    ],
-    members: ["TM001", "TM002", "TM003"],
-  },
-  {
-    id: "PR002",
-    name: "Mobile App Development",
-    status: "Not Started",
-    progress: 0,
-    dueDate: "2024-06-30",
-    lead: "Alice Johnson",
-    tasks: [],
-    members: ["TM001", "TM002", "TM003"],
-  },
-  {
-    id: "PR003",
-    name: "Data Analytics Platform",
-    status: "Completed",
-    progress: 100,
-    dueDate: "2024-01-15",
-    lead: "David Lee",
-    tasks: [
-      { id: "T005", name: "Database setup", assignedTo: "David Lee", completed: true },
-      { id: "T006", name: "ETL pipeline development", assignedTo: "David Lee", completed: true },
-    ],
-    members: ["TM001", "TM004"],
-  },
-]
+const fetchProjects = async (search = '', status = '', leadId = '') => {
+  const params = new URLSearchParams()
+  if (search) params.append('search', search)
+  if (status) params.append('status', status)
+  if (leadId) params.append('leadId', leadId)
+  params.append('limit', '50')
+  
+  const response = await fetch(`/api/team/projects?${params}`)
+  if (!response.ok) throw new Error('Failed to fetch projects')
+  const data = await response.json()
+  return data.projects
+}
 
-const initialAnnouncements: Announcement[] = [
-  {
-    id: "AN001",
-    title: "New Project: Mobile App Development Kicked Off!",
-    content:
-      "Exciting news! We've officially started the 'Mobile App Development' project. This will be a key initiative for Q2. Alice Johnson will be leading this project. More details to follow in the project management section.",
-    date: "2024-02-28",
-    author: "Management Team",
-  },
-  {
-    id: "AN002",
-    title: "Team Meeting Rescheduled",
-    content:
-      "Please note that the weekly team sync-up meeting for this Friday has been rescheduled to next Monday at 10:00 AM. An updated calendar invite has been sent out.",
-    date: "2024-02-26",
-    author: "Alice Johnson",
-  },
-]
+const fetchAnnouncements = async (search = '', priority = '') => {
+  const params = new URLSearchParams()
+  if (search) params.append('search', search)
+  if (priority) params.append('priority', priority)
+  params.append('limit', '50')
+  params.append('isActive', 'true')
+  
+  const response = await fetch(`/api/team/announcements?${params}`)
+  if (!response.ok) throw new Error('Failed to fetch announcements')
+  const data = await response.json()
+  return data.announcements
+}
 
-const initialEvents: Event[] = [
-  {
-    id: "EV001",
-    title: "Weekly Team Sync",
-    date: "2024-03-04",
-    time: "10:00 AM",
-    location: "Conference Room A",
-    attendees: ["TM001", "TM002", "TM003", "TM004"],
-  },
-  {
-    id: "EV002",
-    title: "Q1 Performance Review",
-    date: "2024-03-15",
-    time: "02:00 PM",
-    location: "Virtual (Zoom)",
-    attendees: ["TM001", "TM002", "TM003", "TM004"],
-  },
-  {
-    id: "EV003",
-    title: "Project Alpha Brainstorm",
-    date: "2024-03-07",
-    time: "11:00 AM",
-    location: "Innovation Lab",
-    attendees: ["TM001", "TM002", "TM003"],
-  },
-]
+const fetchEvents = async (search = '') => {
+  const params = new URLSearchParams()
+  if (search) params.append('search', search)
+  params.append('limit', '50')
+  // Get events from today onwards
+  params.append('startDate', new Date().toISOString().split('T')[0])
+  
+  const response = await fetch(`/api/team/events?${params}`)
+  if (!response.ok) throw new Error('Failed to fetch events')
+  const data = await response.json()
+  return data.events
+}
 
 // Helper functions for styling
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "Completed":
+    case "COMPLETED":
       return "bg-green-100 text-green-800 border-green-200"
-    case "In Progress":
+    case "IN_PROGRESS":
       return "bg-blue-100 text-blue-800 border-blue-200"
-    case "Not Started":
+    case "NOT_STARTED":
       return "bg-gray-100 text-gray-800 border-gray-200"
-    case "On Hold":
+    case "ON_HOLD":
       return "bg-yellow-100 text-yellow-800 border-yellow-200"
+    case "CANCELLED":
+      return "bg-red-100 text-red-800 border-red-200"
     default:
       return "bg-gray-100 text-gray-800 border-gray-200"
   }
@@ -232,144 +224,330 @@ const getStatusColor = (status: string) => {
 
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case "Completed":
+    case "COMPLETED":
       return <CheckCircle className="h-4 w-4" />
-    case "In Progress":
+    case "IN_PROGRESS":
       return <Clock className="h-4 w-4" />
-    case "Not Started":
+    case "NOT_STARTED":
       return <AlertCircle className="h-4 w-4" />
-    case "On Hold":
+    case "ON_HOLD":
+      return <AlertCircle className="h-4 w-4" />
+    case "CANCELLED":
       return <AlertCircle className="h-4 w-4" />
     default:
       return <FileText className="h-4 w-4" />
   }
 }
 
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case "COMPLETED":
+      return "Completed"
+    case "IN_PROGRESS":
+      return "In Progress"
+    case "NOT_STARTED":
+      return "Not Started"
+    case "ON_HOLD":
+      return "On Hold"
+    case "CANCELLED":
+      return "Cancelled"
+    default:
+      return status
+  }
+}
+
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case "URGENT":
+      return "bg-red-100 text-red-800 border-red-200"
+    case "HIGH":
+      return "bg-orange-100 text-orange-800 border-orange-200"
+    case "MEDIUM":
+      return "bg-blue-100 text-blue-800 border-blue-200"
+    case "LOW":
+      return "bg-gray-100 text-gray-800 border-gray-200"
+    default:
+      return "bg-gray-100 text-gray-800 border-gray-200"
+  }
+}
+
+const formatDate = (date: Date | string | null | undefined) => {
+  if (!date) return 'No date set'
+  const d = typeof date === 'string' ? new Date(date) : date
+  return d.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric' 
+  })
+}
+
+const formatDateTime = (date: Date | string | null | undefined, time?: string) => {
+  if (!date) return 'No date set'
+  const d = typeof date === 'string' ? new Date(date) : date
+  const dateStr = d.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric' 
+  })
+  return time ? `${dateStr} at ${time}` : dateStr
+}
+
 export default function TeamManagement() {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialTeamMembers)
-  const [projects, setProjects] = useState<Project[]>(initialProjects)
-  const [announcements, setAnnouncements] = useState<Announcement[]>(initialAnnouncements)
-  const [events, setEvents] = useState<Event[]>(initialEvents)
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [events, setEvents] = useState<TeamEvent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [memberSearchQuery, setMemberSearchQuery] = useState("")
   const [projectSearchQuery, setProjectSearchQuery] = useState("")
+  
+  // Load data on component mount
+  useEffect(() => {
+    loadAllData()
+  }, [])
+  
+  const loadAllData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const [membersData, projectsData, announcementsData, eventsData] = await Promise.all([
+        fetchTeamMembers(),
+        fetchProjects(),
+        fetchAnnouncements(),
+        fetchEvents()
+      ])
+      
+      setTeamMembers(membersData)
+      setProjects(projectsData)
+      setAnnouncements(announcementsData)
+      setEvents(eventsData)
+    } catch (err) {
+      console.error('Error loading team data:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load team data')
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  // Refresh data when search queries change
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      if (memberSearchQuery !== '') {
+        fetchTeamMembers(memberSearchQuery).then(setTeamMembers).catch(console.error)
+      }
+    }, 300)
+    return () => clearTimeout(debounceTimer)
+  }, [memberSearchQuery])
+  
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      if (projectSearchQuery !== '') {
+        fetchProjects(projectSearchQuery).then(setProjects).catch(console.error)
+      }
+    }, 300)
+    return () => clearTimeout(debounceTimer)
+  }, [projectSearchQuery])
 
   // Dialog states for adding new items
   const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false)
-  const [newMember, setNewMember] = useState<Omit<TeamMember, "id" | "projects">>({
+  const [newMember, setNewMember] = useState({
     name: "",
-    role: "",
+    role: "USER" as const,
     email: "",
-    phone: "",
-    skills: [],
-    bio: "",
-    avatar: "",
+    organization: "",
+    image: "",
   })
 
   const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = useState(false)
-  const [newProject, setNewProject] = useState<Omit<Project, "id" | "progress" | "tasks">>({
+  const [newProject, setNewProject] = useState({
     name: "",
-    status: "Not Started",
+    description: "",
+    status: "NOT_STARTED" as const,
+    priority: "MEDIUM" as const,
     dueDate: "",
-    lead: "",
-    members: [],
+    leadId: "",
+    memberIds: [] as string[],
   })
 
   const [isPostAnnouncementDialogOpen, setIsPostAnnouncementDialogOpen] = useState(false)
-  const [newAnnouncement, setNewAnnouncement] = useState<Omit<Announcement, "id" | "date" | "author">>({
+  const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
     content: "",
+    priority: "MEDIUM" as const,
+    authorId: "",
   })
 
   const [isScheduleEventDialogOpen, setIsScheduleEventDialogOpen] = useState(false)
-  const [newEvent, setNewEvent] = useState<Omit<Event, "id">>({
+  const [newEvent, setNewEvent] = useState({
     title: "",
+    description: "",
     date: "",
     time: "",
     location: "",
-    attendees: [],
+    organizerId: "",
+    attendeeIds: [] as string[],
   })
 
   // Handlers for adding new items
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     if (newMember.name && newMember.role && newMember.email) {
-      setTeamMembers((prev) => [
-        ...prev,
-        {
-          id: `TM${String(prev.length + 1).padStart(3, "0")}`,
-          ...newMember,
-          skills: newMember.skills.filter(Boolean), // Ensure no empty strings
-          projects: [], // New member starts with no projects
-          avatar: newMember.avatar || `/placeholder.svg?height=100&width=100&query=${newMember.name}`,
-        },
-      ])
-      setNewMember({ name: "", role: "", email: "", phone: "", skills: [], bio: "", avatar: "" })
-      setIsAddMemberDialogOpen(false)
+      try {
+        const response = await fetch('/api/team/members', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newMember),
+        })
+        
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to create member')
+        }
+        
+        const createdMember = await response.json()
+        setTeamMembers((prev) => [createdMember, ...prev])
+        setNewMember({ name: "", role: "USER", email: "", organization: "", image: "" })
+        setIsAddMemberDialogOpen(false)
+      } catch (error) {
+        console.error('Error creating member:', error)
+        setError(error instanceof Error ? error.message : 'Failed to create member')
+      }
     }
   }
 
-  const handleAddProject = () => {
-    if (newProject.name && newProject.dueDate && newProject.lead) {
-      setProjects((prev) => [
-        ...prev,
-        {
-          id: `PR${String(prev.length + 1).padStart(3, "0")}`,
-          progress: 0,
-          tasks: [],
-          ...newProject,
-        },
-      ])
-      setNewProject({ name: "", status: "Not Started", dueDate: "", lead: "", members: [] })
-      setIsAddProjectDialogOpen(false)
+  const handleAddProject = async () => {
+    if (newProject.name && newProject.leadId) {
+      try {
+        const response = await fetch('/api/team/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newProject),
+        })
+        
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to create project')
+        }
+        
+        const createdProject = await response.json()
+        setProjects((prev) => [createdProject, ...prev])
+        setNewProject({ name: "", description: "", status: "NOT_STARTED", priority: "MEDIUM", dueDate: "", leadId: "", memberIds: [] })
+        setIsAddProjectDialogOpen(false)
+      } catch (error) {
+        console.error('Error creating project:', error)
+        setError(error instanceof Error ? error.message : 'Failed to create project')
+      }
     }
   }
 
-  const handlePostAnnouncement = () => {
-    if (newAnnouncement.title && newAnnouncement.content) {
-      setAnnouncements((prev) => [
-        {
-          id: `AN${String(prev.length + 1).padStart(3, "0")}`,
-          date: new Date().toLocaleDateString("en-US"),
-          author: "Admin", // Could be dynamic based on logged-in user
-          ...newAnnouncement,
-        },
-        ...prev, // Add to top
-      ])
-      setNewAnnouncement({ title: "", content: "" })
-      setIsPostAnnouncementDialogOpen(false)
+  const handlePostAnnouncement = async () => {
+    if (newAnnouncement.title && newAnnouncement.content && newAnnouncement.authorId) {
+      try {
+        const response = await fetch('/api/team/announcements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newAnnouncement),
+        })
+        
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to create announcement')
+        }
+        
+        const createdAnnouncement = await response.json()
+        setAnnouncements((prev) => [createdAnnouncement, ...prev])
+        setNewAnnouncement({ title: "", content: "", priority: "MEDIUM", authorId: "" })
+        setIsPostAnnouncementDialogOpen(false)
+      } catch (error) {
+        console.error('Error creating announcement:', error)
+        setError(error instanceof Error ? error.message : 'Failed to create announcement')
+      }
     }
   }
 
-  const handleScheduleEvent = () => {
-    if (newEvent.title && newEvent.date && newEvent.time) {
-      setEvents((prev) => [
-        ...prev,
-        {
-          id: `EV${String(prev.length + 1).padStart(3, "0")}`,
-          ...newEvent,
-        },
-      ])
-      setNewEvent({ title: "", date: "", time: "", location: "", attendees: [] })
-      setIsScheduleEventDialogOpen(false)
+  const handleScheduleEvent = async () => {
+    if (newEvent.title && newEvent.date && newEvent.organizerId) {
+      try {
+        const response = await fetch('/api/team/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newEvent),
+        })
+        
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to create event')
+        }
+        
+        const createdEvent = await response.json()
+        setEvents((prev) => [createdEvent, ...prev])
+        setNewEvent({ title: "", description: "", date: "", time: "", location: "", organizerId: "", attendeeIds: [] })
+        setIsScheduleEventDialogOpen(false)
+      } catch (error) {
+        console.error('Error creating event:', error)
+        setError(error instanceof Error ? error.message : 'Failed to create event')
+      }
     }
   }
 
   // Filtered data for display
   const filteredMembers = teamMembers.filter(
     (member) =>
-      member.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
-      member.role.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
-      member.skills.some((skill) => skill.toLowerCase().includes(memberSearchQuery.toLowerCase())),
+      member.name?.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
+      member.role?.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
+      member.organization?.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
+      member.email?.toLowerCase().includes(memberSearchQuery.toLowerCase()),
   )
 
   const filteredProjects = projects.filter(
     (project) =>
-      project.name.toLowerCase().includes(projectSearchQuery.toLowerCase()) ||
-      project.lead.toLowerCase().includes(projectSearchQuery.toLowerCase()) ||
-      project.status.toLowerCase().includes(projectSearchQuery.toLowerCase()),
+      project.name?.toLowerCase().includes(projectSearchQuery.toLowerCase()) ||
+      project.lead?.name?.toLowerCase().includes(projectSearchQuery.toLowerCase()) ||
+      project.status?.toLowerCase().includes(projectSearchQuery.toLowerCase()) ||
+      project.description?.toLowerCase().includes(projectSearchQuery.toLowerCase()),
   )
 
   const getMemberNameById = (id: string) => teamMembers.find((m) => m.id === id)?.name || "Unknown"
+  
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="p-6 space-y-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading team data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="p-6 space-y-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+              <p className="mt-4 text-red-600 dark:text-red-400">Error: {error}</p>
+              <button 
+                onClick={loadAllData}
+                className="mt-4 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -402,11 +580,24 @@ export default function TeamManagement() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="memberRole">Role</Label>
-                  <Input
-                    id="memberRole"
+                  <Select
                     value={newMember.role}
-                    onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
-                  />
+                    onValueChange={(value) => setNewMember({ ...newMember, role: value as any })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USER">User</SelectItem>
+                      <SelectItem value="ANALYST">Analyst</SelectItem>
+                      <SelectItem value="MANAGER">Manager</SelectItem>
+                      <SelectItem value="ADMIN">Admin</SelectItem>
+                      <SelectItem value="VENTURE_MANAGER">Venture Manager</SelectItem>
+                      <SelectItem value="GEDSI_ANALYST">GEDSI Analyst</SelectItem>
+                      <SelectItem value="CAPITAL_FACILITATOR">Capital Facilitator</SelectItem>
+                      <SelectItem value="EXTERNAL_STAKEHOLDER">External Stakeholder</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="memberEmail">Email</Label>
@@ -418,38 +609,19 @@ export default function TeamManagement() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="memberPhone">Phone</Label>
+                  <Label htmlFor="memberOrganization">Organization</Label>
                   <Input
-                    id="memberPhone"
-                    type="tel"
-                    value={newMember.phone}
-                    onChange={(e) => setNewMember({ ...newMember, phone: e.target.value })}
+                    id="memberOrganization"
+                    value={newMember.organization}
+                    onChange={(e) => setNewMember({ ...newMember, organization: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="memberSkills">Skills (comma-separated)</Label>
+                  <Label htmlFor="memberImage">Profile Image URL (Optional)</Label>
                   <Input
-                    id="memberSkills"
-                    value={newMember.skills.join(", ")}
-                    onChange={(e) =>
-                      setNewMember({ ...newMember, skills: e.target.value.split(",").map((s) => s.trim()) })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="memberBio">Bio</Label>
-                  <Textarea
-                    id="memberBio"
-                    value={newMember.bio}
-                    onChange={(e) => setNewMember({ ...newMember, bio: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="memberAvatar">Avatar URL (Optional)</Label>
-                  <Input
-                    id="memberAvatar"
-                    value={newMember.avatar}
-                    onChange={(e) => setNewMember({ ...newMember, avatar: e.target.value })}
+                    id="memberImage"
+                    value={newMember.image}
+                    onChange={(e) => setNewMember({ ...newMember, image: e.target.value })}
                   />
                 </div>
               </div>
@@ -508,9 +680,9 @@ export default function TeamManagement() {
                           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                             <CardContent className="p-6 flex flex-col items-center text-center">
                               <Avatar className="h-20 w-20 mb-4">
-                                <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name} />
+                                <AvatarImage src={member.image || "/placeholder.svg"} alt={member.name || 'User'} />
                                 <AvatarFallback className="bg-teal-100 text-teal-700 text-2xl font-bold">
-                                  {member.name
+                                  {(member.name || 'U')
                                     .split(" ")
                                     .map((n) => n[0])
                                     .join("")}
@@ -518,17 +690,14 @@ export default function TeamManagement() {
                               </Avatar>
                               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{member.name}</h3>
                               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{member.role}</p>
+                              <p className="text-xs text-gray-500 mb-2">{member.organization}</p>
                               <div className="flex flex-wrap justify-center gap-2">
-                                {member.skills.slice(0, 3).map((skill, idx) => (
-                                  <Badge key={idx} variant="secondary" className="bg-gray-100 text-gray-700">
-                                    {skill}
-                                  </Badge>
-                                ))}
-                                {member.skills.length > 3 && (
-                                  <Badge variant="secondary" className="bg-gray-100 text-gray-700">
-                                    +{member.skills.length - 3} more
-                                  </Badge>
-                                )}
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                                  {member._count.ledProjects} Projects Led
+                                </Badge>
+                                <Badge variant="secondary" className="bg-green-100 text-green-700">
+                                  {member._count.assignedTasks} Tasks
+                                </Badge>
                               </div>
                             </CardContent>
                           </Card>
@@ -544,9 +713,9 @@ export default function TeamManagement() {
                           <div className="grid gap-4 py-4">
                             <div className="flex items-center space-x-4">
                               <Avatar className="h-24 w-24">
-                                <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name} />
+                                <AvatarImage src={member.image || "/placeholder.svg"} alt={member.name || 'User'} />
                                 <AvatarFallback className="bg-teal-100 text-teal-700 text-3xl font-bold">
-                                  {member.name
+                                  {(member.name || 'U')
                                     .split(" ")
                                     .map((n) => n[0])
                                     .join("")}
@@ -555,6 +724,7 @@ export default function TeamManagement() {
                               <div>
                                 <h4 className="text-xl font-semibold">{member.name}</h4>
                                 <p className="text-gray-600">{member.role}</p>
+                                {member.organization && <p className="text-sm text-gray-500">{member.organization}</p>}
                               </div>
                             </div>
                             <div className="space-y-2">
@@ -563,44 +733,59 @@ export default function TeamManagement() {
                                 <span>Contact Information</span>
                               </h5>
                               <p className="text-sm text-gray-700">Email: {member.email}</p>
-                              <p className="text-sm text-gray-700">Phone: {member.phone}</p>
+                              <p className="text-sm text-gray-700">Member since: {formatDate(member.createdAt)}</p>
+                              {member.emailVerified && <p className="text-sm text-green-600">✓ Email verified</p>}
                             </div>
                             <div className="space-y-2">
                               <h5 className="font-medium flex items-center space-x-2">
                                 <Award className="h-4 w-4" />
-                                <span>Skills</span>
+                                <span>Activity Summary</span>
                               </h5>
-                              <div className="flex flex-wrap gap-2">
-                                {member.skills.map((skill, idx) => (
-                                  <Badge key={idx} variant="outline">
-                                    {skill}
-                                  </Badge>
-                                ))}
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="font-medium text-blue-600">{member._count.ledProjects}</p>
+                                  <p className="text-gray-600">Projects Led</p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-green-600">{member._count.projectMemberships}</p>
+                                  <p className="text-gray-600">Project Memberships</p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-orange-600">{member._count.assignedTasks}</p>
+                                  <p className="text-gray-600">Active Tasks</p>
+                                </div>
                               </div>
                             </div>
                             <div className="space-y-2">
                               <h5 className="font-medium flex items-center space-x-2">
-                                <Lightbulb className="h-4 w-4" />
-                                <span>Bio</span>
-                              </h5>
-                              <p className="text-sm text-gray-700">{member.bio}</p>
-                            </div>
-                            <div className="space-y-2">
-                              <h5 className="font-medium flex items-center space-x-2">
                                 <Briefcase className="h-4 w-4" />
-                                <span>Assigned Projects</span>
+                                <span>Recent Projects</span>
                               </h5>
-                              <ul className="list-disc list-inside text-sm text-gray-700">
-                                {member.projects.length > 0 ? (
-                                  member.projects.map((projectId) => (
-                                    <li key={projectId}>
-                                      {projects.find((p) => p.id === projectId)?.name || projectId}
-                                    </li>
-                                  ))
-                                ) : (
-                                  <li>No projects assigned.</li>
+                              <div className="space-y-2">
+                                {member.ledProjects.length > 0 && (
+                                  <div>
+                                    <p className="text-sm font-medium text-blue-600">Leading:</p>
+                                    {member.ledProjects.slice(0, 3).map((project) => (
+                                      <div key={project.id} className="text-sm text-gray-700 ml-2">
+                                        • {project.name} ({getStatusLabel(project.status)})
+                                      </div>
+                                    ))}
+                                  </div>
                                 )}
-                              </ul>
+                                {member.projectMemberships.length > 0 && (
+                                  <div>
+                                    <p className="text-sm font-medium text-green-600">Member of:</p>
+                                    {member.projectMemberships.slice(0, 3).map((project) => (
+                                      <div key={project.id} className="text-sm text-gray-700 ml-2">
+                                        • {project.name} ({getStatusLabel(project.status)})
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                {member.ledProjects.length === 0 && member.projectMemberships.length === 0 && (
+                                  <p className="text-sm text-gray-500">No active projects.</p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </DialogContent>
@@ -647,23 +832,53 @@ export default function TeamManagement() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="projectStatus">Status</Label>
-                          <Select
-                            value={newProject.status}
-                            onValueChange={(value) =>
-                              setNewProject({ ...newProject, status: value as Project["status"] })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Not Started">Not Started</SelectItem>
-                              <SelectItem value="In Progress">In Progress</SelectItem>
-                              <SelectItem value="Completed">Completed</SelectItem>
-                              <SelectItem value="On Hold">On Hold</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <Label htmlFor="projectDescription">Description</Label>
+                          <Textarea
+                            id="projectDescription"
+                            value={newProject.description}
+                            onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="projectStatus">Status</Label>
+                            <Select
+                              value={newProject.status}
+                              onValueChange={(value) =>
+                                setNewProject({ ...newProject, status: value as any })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="NOT_STARTED">Not Started</SelectItem>
+                                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                                <SelectItem value="COMPLETED">Completed</SelectItem>
+                                <SelectItem value="ON_HOLD">On Hold</SelectItem>
+                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="projectPriority">Priority</Label>
+                            <Select
+                              value={newProject.priority}
+                              onValueChange={(value) =>
+                                setNewProject({ ...newProject, priority: value as any })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select priority" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="LOW">Low</SelectItem>
+                                <SelectItem value="MEDIUM">Medium</SelectItem>
+                                <SelectItem value="HIGH">High</SelectItem>
+                                <SelectItem value="URGENT">Urgent</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="projectDueDate">Due Date</Label>
@@ -677,41 +892,52 @@ export default function TeamManagement() {
                         <div className="space-y-2">
                           <Label htmlFor="projectLead">Project Lead</Label>
                           <Select
-                            value={newProject.lead}
-                            onValueChange={(value) => setNewProject({ ...newProject, lead: value })}
+                            value={newProject.leadId}
+                            onValueChange={(value) => setNewProject({ ...newProject, leadId: value })}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select lead" />
                             </SelectTrigger>
                             <SelectContent>
                               {teamMembers.map((member) => (
-                                <SelectItem key={member.id} value={member.name}>
-                                  {member.name}
+                                <SelectItem key={member.id} value={member.id}>
+                                  {member.name} ({member.role})
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="projectMembers">Team Members</Label>
-                          <Select
-                            value={newProject.members.join(",")} // Store as comma-separated string for multi-select simulation
-                            onValueChange={(value) =>
-                              setNewProject({ ...newProject, members: value.split(",").filter(Boolean) })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select members" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {teamMembers.map((member) => (
-                                <SelectItem key={member.id} value={member.id}>
-                                  {member.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-gray-500">Hold Ctrl/Cmd to select multiple (conceptual)</p>
+                          <Label htmlFor="projectMembers">Team Members (Optional)</Label>
+                          <div className="text-sm text-gray-600 mb-2">
+                            Selected: {newProject.memberIds.length === 0 ? 'None' : 
+                              newProject.memberIds.map(id => teamMembers.find(m => m.id === id)?.name).join(', ')}
+                          </div>
+                          <div className="max-h-32 overflow-y-auto border rounded p-2 space-y-1">
+                            {teamMembers.map((member) => (
+                              <label key={member.id} className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={newProject.memberIds.includes(member.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setNewProject({ 
+                                        ...newProject, 
+                                        memberIds: [...newProject.memberIds, member.id] 
+                                      })
+                                    } else {
+                                      setNewProject({ 
+                                        ...newProject, 
+                                        memberIds: newProject.memberIds.filter(id => id !== member.id) 
+                                      })
+                                    }
+                                  }}
+                                  className="rounded"
+                                />
+                                <span className="text-sm">{member.name} ({member.role})</span>
+                              </label>
+                            ))}
+                          </div>
                         </div>
                       </div>
                       <DialogFooter>
@@ -743,13 +969,21 @@ export default function TeamManagement() {
                             <CardContent className="p-6 space-y-4">
                               <div className="flex items-center justify-between">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{project.name}</h3>
-                                <Badge
-                                  variant="outline"
-                                  className={`${getStatusColor(project.status)} font-medium flex items-center space-x-1`}
-                                >
-                                  {getStatusIcon(project.status)}
-                                  <span>{project.status}</span>
-                                </Badge>
+                                <div className="flex gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className={`${getPriorityColor(project.priority)} font-medium`}
+                                  >
+                                    {project.priority}
+                                  </Badge>
+                                  <Badge
+                                    variant="outline"
+                                    className={`${getStatusColor(project.status)} font-medium flex items-center space-x-1`}
+                                  >
+                                    {getStatusIcon(project.status)}
+                                    <span>{getStatusLabel(project.status)}</span>
+                                  </Badge>
+                                </div>
                               </div>
                               <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
@@ -761,18 +995,26 @@ export default function TeamManagement() {
                               <div className="grid grid-cols-2 gap-2 text-sm">
                                 <div>
                                   <p className="text-gray-500">Due Date</p>
-                                  <p className="font-medium">{project.dueDate}</p>
+                                  <p className="font-medium">{formatDate(project.dueDate)}</p>
                                 </div>
                                 <div>
                                   <p className="text-gray-500">Lead</p>
-                                  <p className="font-medium">{project.lead}</p>
+                                  <p className="font-medium">{project.lead.name}</p>
                                 </div>
                               </div>
+                              {project.description && (
+                                <p className="text-sm text-gray-600 line-clamp-2">{project.description}</p>
+                              )}
                               <div className="flex items-center gap-2 mt-2">
                                 <Users className="h-4 w-4 text-gray-500" />
                                 <span className="text-sm text-gray-600">
-                                  Team: {project.members.map(getMemberNameById).join(", ")}
+                                  Team: {project.members.map(m => m.name).join(", ") || 'No members assigned'}
                                 </span>
+                              </div>
+                              <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                <span>{project._count.tasks} tasks</span>
+                                <span>{project._count.members} members</span>
+                                {project.venture && <span>Linked to {project.venture.name}</span>}
                               </div>
                             </CardContent>
                           </Card>
@@ -802,51 +1044,97 @@ export default function TeamManagement() {
                             </div>
                             <div className="space-y-2">
                               <h4 className="font-medium">Key Information</h4>
-                              <p className="text-sm text-gray-700">Due Date: {project.dueDate}</p>
-                              <p className="text-sm text-gray-700">Project Lead: {project.lead}</p>
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="text-gray-500">Due Date:</p>
+                                  <p className="font-medium">{formatDate(project.dueDate)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Start Date:</p>
+                                  <p className="font-medium">{formatDate(project.startDate)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Project Lead:</p>
+                                  <p className="font-medium">{project.lead.name}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Priority:</p>
+                                  <Badge variant="outline" className={getPriorityColor(project.priority)}>
+                                    {project.priority}
+                                  </Badge>
+                                </div>
+                              </div>
+                              {project.description && (
+                                <div>
+                                  <p className="text-gray-500">Description:</p>
+                                  <p className="text-sm text-gray-700">{project.description}</p>
+                                </div>
+                              )}
+                              {project.completedAt && (
+                                <div>
+                                  <p className="text-gray-500">Completed:</p>
+                                  <p className="font-medium text-green-600">{formatDate(project.completedAt)}</p>
+                                </div>
+                              )}
                             </div>
                             <div className="space-y-2">
                               <h4 className="font-medium">Team Members</h4>
                               <div className="flex flex-wrap gap-2">
-                                {project.members.map((memberId) => {
-                                  const member = teamMembers.find((m) => m.id === memberId)
-                                  return member ? (
-                                    <Badge key={member.id} variant="secondary" className="flex items-center gap-1">
-                                      <Avatar className="h-4 w-4">
-                                        <AvatarImage src={member.avatar || "/placeholder.svg"} />
-                                        <AvatarFallback className="text-xs">
-                                          {member.name
-                                            .split(" ")
-                                            .map((n) => n[0])
-                                            .join("")}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      {member.name}
-                                    </Badge>
-                                  ) : null
-                                })}
+                                {project.members.map((member) => (
+                                  <Badge key={member.id} variant="secondary" className="flex items-center gap-1">
+                                    <Avatar className="h-4 w-4">
+                                      <AvatarImage src={member.image || "/placeholder.svg"} />
+                                      <AvatarFallback className="text-xs">
+                                        {(member.name || 'U')
+                                          .split(" ")
+                                          .map((n) => n[0])
+                                          .join("")}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    {member.name} ({member.role})
+                                  </Badge>
+                                ))}
+                                {project.members.length === 0 && (
+                                  <p className="text-sm text-gray-500">No team members assigned.</p>
+                                )}
                               </div>
                             </div>
                             <div className="space-y-2">
-                              <h4 className="font-medium">Tasks</h4>
-                              <ul className="space-y-2">
-                                {project.tasks.length > 0 ? (
-                                  project.tasks.map((task) => (
-                                    <li key={task.id} className="flex items-center justify-between text-sm">
-                                      <span className={task.completed ? "line-through text-gray-500" : ""}>
-                                        {task.name} (Assigned to: {getMemberNameById(task.assignedTo)})
-                                      </span>
-                                      {task.completed ? (
-                                        <CheckCircle className="h-4 w-4 text-green-500" />
-                                      ) : (
-                                        <Clock className="h-4 w-4 text-gray-400" />
-                                      )}
-                                    </li>
+                              <h4 className="font-medium">Recent Tasks</h4>
+                              <div className="space-y-2">
+                                {project.tasks && project.tasks.length > 0 ? (
+                                  project.tasks.slice(0, 5).map((task) => (
+                                    <div key={task.id} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
+                                      <div>
+                                        <span className={task.status === 'COMPLETED' ? "line-through text-gray-500" : ""}>
+                                          {task.name}
+                                        </span>
+                                        {task.assignedTo && (
+                                          <p className="text-xs text-gray-500">Assigned to: {task.assignedTo.name}</p>
+                                        )}
+                                        {task.dueDate && (
+                                          <p className="text-xs text-gray-500">Due: {formatDate(task.dueDate)}</p>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className={getPriorityColor(task.priority)}>
+                                          {task.priority}
+                                        </Badge>
+                                        {task.status === 'COMPLETED' ? (
+                                          <CheckCircle className="h-4 w-4 text-green-500" />
+                                        ) : (
+                                          <Clock className="h-4 w-4 text-gray-400" />
+                                        )}
+                                      </div>
+                                    </div>
                                   ))
                                 ) : (
                                   <p className="text-sm text-gray-500">No tasks defined for this project.</p>
                                 )}
-                              </ul>
+                                {project._count.tasks > 5 && (
+                                  <p className="text-xs text-gray-500">And {project._count.tasks - 5} more tasks...</p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </DialogContent>
@@ -899,6 +1187,43 @@ export default function TeamManagement() {
                             rows={5}
                           />
                         </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="announcementPriority">Priority</Label>
+                            <Select
+                              value={newAnnouncement.priority}
+                              onValueChange={(value) => setNewAnnouncement({ ...newAnnouncement, priority: value as any })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select priority" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="LOW">Low</SelectItem>
+                                <SelectItem value="MEDIUM">Medium</SelectItem>
+                                <SelectItem value="HIGH">High</SelectItem>
+                                <SelectItem value="URGENT">Urgent</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="announcementAuthor">Author</Label>
+                            <Select
+                              value={newAnnouncement.authorId}
+                              onValueChange={(value) => setNewAnnouncement({ ...newAnnouncement, authorId: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select author" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {teamMembers.filter(m => ['ADMIN', 'MANAGER'].includes(m.role)).map((member) => (
+                                  <SelectItem key={member.id} value={member.id}>
+                                    {member.name} ({member.role})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                       </div>
                       <DialogFooter>
                         <Button variant="outline" onClick={() => setIsPostAnnouncementDialogOpen(false)}>
@@ -919,11 +1244,23 @@ export default function TeamManagement() {
                         className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                       >
                         <CardContent className="p-0">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{announcement.title}</h3>
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{announcement.title}</h3>
+                            <Badge variant="outline" className={getPriorityColor(announcement.priority)}>
+                              {announcement.priority}
+                            </Badge>
+                          </div>
                           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{announcement.content}</p>
-                          <p className="text-xs text-gray-500 mt-2">
-                            Posted by {announcement.author} on {announcement.date}
-                          </p>
+                          <div className="flex items-center justify-between mt-2">
+                            <p className="text-xs text-gray-500">
+                              Posted by {announcement.author.name} on {formatDate(announcement.createdAt)}
+                            </p>
+                            {announcement.expiresAt && (
+                              <p className="text-xs text-orange-500">
+                                Expires: {formatDate(announcement.expiresAt)}
+                              </p>
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
                     ))
@@ -966,22 +1303,33 @@ export default function TeamManagement() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="eventDate">Date</Label>
-                          <Input
-                            id="eventDate"
-                            type="date"
-                            value={newEvent.date}
-                            onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                          <Label htmlFor="eventDescription">Description</Label>
+                          <Textarea
+                            id="eventDescription"
+                            value={newEvent.description}
+                            onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                            rows={3}
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="eventTime">Time</Label>
-                          <Input
-                            id="eventTime"
-                            type="time"
-                            value={newEvent.time}
-                            onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="eventDate">Date</Label>
+                            <Input
+                              id="eventDate"
+                              type="date"
+                              value={newEvent.date}
+                              onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="eventTime">Time (Optional)</Label>
+                            <Input
+                              id="eventTime"
+                              type="time"
+                              value={newEvent.time}
+                              onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                            />
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="eventLocation">Location</Label>
@@ -992,25 +1340,54 @@ export default function TeamManagement() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="eventAttendees">Attendees</Label>
+                          <Label htmlFor="eventOrganizer">Organizer</Label>
                           <Select
-                            value={newEvent.attendees.join(",")}
-                            onValueChange={(value) =>
-                              setNewEvent({ ...newEvent, attendees: value.split(",").filter(Boolean) })
-                            }
+                            value={newEvent.organizerId}
+                            onValueChange={(value) => setNewEvent({ ...newEvent, organizerId: value })}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select attendees" />
+                              <SelectValue placeholder="Select organizer" />
                             </SelectTrigger>
                             <SelectContent>
                               {teamMembers.map((member) => (
                                 <SelectItem key={member.id} value={member.id}>
-                                  {member.name}
+                                  {member.name} ({member.role})
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-                          <p className="text-xs text-gray-500">Hold Ctrl/Cmd to select multiple (conceptual)</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="eventAttendees">Attendees</Label>
+                          <div className="text-sm text-gray-600 mb-2">
+                            Selected: {newEvent.attendeeIds.length === 0 ? 'None' : 
+                              newEvent.attendeeIds.map(id => teamMembers.find(m => m.id === id)?.name).join(', ')}
+                          </div>
+                          <div className="max-h-32 overflow-y-auto border rounded p-2 space-y-1">
+                            {teamMembers.map((member) => (
+                              <label key={member.id} className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={newEvent.attendeeIds.includes(member.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setNewEvent({ 
+                                        ...newEvent, 
+                                        attendeeIds: [...newEvent.attendeeIds, member.id] 
+                                      })
+                                    } else {
+                                      setNewEvent({ 
+                                        ...newEvent, 
+                                        attendeeIds: newEvent.attendeeIds.filter(id => id !== member.id) 
+                                      })
+                                    }
+                                  }}
+                                  className="rounded"
+                                />
+                                <span className="text-sm">{member.name} ({member.role})</span>
+                              </label>
+                            ))}
+                          </div>
                         </div>
                       </div>
                       <DialogFooter>
@@ -1036,21 +1413,43 @@ export default function TeamManagement() {
                             className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                           >
                             <CardContent className="p-0">
-                              <h4 className="font-medium text-gray-900 dark:text-white">{event.title}</h4>
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium text-gray-900 dark:text-white">{event.title}</h4>
+                                {event.isAllDay && (
+                                  <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                                    All Day
+                                  </Badge>
+                                )}
+                              </div>
+                              {event.description && (
+                                <p className="text-sm text-gray-600 mb-2">{event.description}</p>
+                              )}
                               <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
                                 <Calendar className="h-4 w-4" />
                                 <span>
-                                  {event.date} at {event.time}
+                                  {formatDateTime(event.date, event.time)}
                                 </span>
                               </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                                <MapPin className="h-4 w-4" />
-                                <span>{event.location}</span>
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                                <Users className="h-3 w-3" />
-                                Attendees: {event.attendees.map(getMemberNameById).join(", ")}
-                              </p>
+                              {event.location && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                                  <MapPin className="h-4 w-4" />
+                                  <span>{event.location}</span>
+                                </p>
+                              )}
+                              <div className="flex items-center justify-between mt-2">
+                                <p className="text-xs text-gray-500 flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  {event._count.attendees} attendees
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  Organized by {event.organizer.name}
+                                </p>
+                              </div>
+                              {event.isRecurring && (
+                                <p className="text-xs text-blue-500 mt-1">
+                                  🔄 Recurring event
+                                </p>
+                              )}
                             </CardContent>
                           </Card>
                         ))

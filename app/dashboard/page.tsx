@@ -859,12 +859,25 @@ export default function EnterpriseDashboard() {
     setNotifications(prev => prev.filter(n => n.id !== id))
   }
 
+  const handleLogout = async () => {
+    try {
+      const res = await fetch('/backend/api/users/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      // Regardless of response, clear client state and go to login
+      router.push('/auth/login')
+    } catch (_e) {
+      router.push('/auth/login')
+    }
+  }
+
   return (
     <>
       {/* Main Content */}
       <main className="flex-1 space-y-6 overflow-auto bg-transparent">
         <Tabs value={activeView} onValueChange={setActiveView} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white/80 dark:bg-slate-800/80 shadow rounded-lg mb-4">
+          <TabsList className="grid w-full grid-cols-5 bg-white/80 dark:bg-slate-800/80 shadow rounded-lg mb-4 relative">
             <TabsTrigger value="overview" className="flex items-center space-x-2">
               <Grid3X3 className="h-4 w-4" />
               <span>Overview</span>
@@ -885,6 +898,9 @@ export default function EnterpriseDashboard() {
               <Workflow className="h-4 w-4" />
               <span>Workflows</span>
             </TabsTrigger>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+              <Button size="sm" variant="outline" onClick={handleLogout}>Logout</Button>
+            </div>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
